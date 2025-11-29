@@ -252,21 +252,26 @@ st.markdown("""
     }
     
     /* ============================================
-       BOTONES PROFESIONALES
+       BOTONES PROFESIONALES MEJORADOS
        ============================================ */
     .stButton > button {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-        color: white;
-        border: none;
-        border-radius: var(--border-radius);
-        padding: var(--spacing-md) var(--spacing-lg);
-        font-weight: 600;
-        font-size: 16px;
-        transition: all var(--transition-base);
-        box-shadow: var(--shadow-sm);
+        color: white !important;
+        border: none !important;
+        border-radius: var(--border-radius) !important;
+        padding: var(--spacing-md) var(--spacing-lg) !important;
+        font-weight: 600 !important;
+        font-size: 16px !important;
+        transition: all var(--transition-base) !important;
+        box-shadow: var(--shadow-sm) !important;
         position: relative;
         overflow: hidden;
-        min-height: 48px;
+        min-height: 48px !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
     }
     
     .stButton > button::before {
@@ -280,12 +285,13 @@ st.markdown("""
         background: rgba(255, 255, 255, 0.2);
         transform: translate(-50%, -50%);
         transition: width 0.6s, height 0.6s;
+        pointer-events: none;
     }
     
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
+        transform: translateY(-2px) !important;
+        box-shadow: var(--shadow-md) !important;
+        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%) !important;
     }
     
     .stButton > button:hover::before {
@@ -294,25 +300,39 @@ st.markdown("""
     }
     
     .stButton > button:active {
-        transform: translateY(0);
-        box-shadow: var(--shadow-sm);
+        transform: translateY(0) !important;
+        box-shadow: var(--shadow-sm) !important;
     }
     
     .stButton > button:focus {
-        outline: 2px solid var(--primary-light);
-        outline-offset: 2px;
+        outline: 2px solid var(--primary-light) !important;
+        outline-offset: 2px !important;
+    }
+    
+    .stButton > button:disabled {
+        opacity: 0.6 !important;
+        cursor: not-allowed !important;
     }
     
     /* Botón Secundario */
     .stButton > button[kind="secondary"] {
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
+        background: var(--bg-secondary) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-color) !important;
     }
     
     .stButton > button[kind="secondary"]:hover {
-        background: var(--bg-tertiary);
-        border-color: var(--primary-color);
+        background: var(--bg-tertiary) !important;
+        border-color: var(--primary-color) !important;
+    }
+    
+    /* Botones de descarga */
+    .stDownloadButton > button {
+        background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%) !important;
+    }
+    
+    .stDownloadButton > button:hover {
+        background: linear-gradient(135deg, #059669 0%, var(--success-color) 100%) !important;
     }
     
     /* ============================================
@@ -754,6 +774,264 @@ st.markdown("""
         border-top: 1px solid var(--border-color);
         margin-top: var(--spacing-xl);
     }
+    
+    /* ============================================
+       MEJORAS ADICIONALES - ANIMACIONES Y ESTADOS
+       ============================================ */
+    
+    /* Animación de carga en botones */
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .button-loading {
+        position: relative;
+        pointer-events: none;
+    }
+    
+    .button-loading::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        margin: auto;
+        border: 2px solid transparent;
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    /* Tooltips mejorados */
+    .tooltip-container {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .tooltip-text {
+        visibility: hidden;
+        width: 200px;
+        background-color: var(--text-primary);
+        color: var(--bg-primary);
+        text-align: center;
+        border-radius: var(--border-radius-sm);
+        padding: var(--spacing-sm) var(--spacing-md);
+        position: absolute;
+        z-index: 1000;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity var(--transition-base);
+        font-size: 0.875rem;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .tooltip-container:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+    
+    /* Indicadores de estado mejorados */
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: var(--spacing-sm);
+        animation: pulse 2s infinite;
+    }
+    
+    .status-indicator.success {
+        background-color: var(--success-color);
+    }
+    
+    .status-indicator.warning {
+        background-color: var(--warning-color);
+    }
+    
+    .status-indicator.error {
+        background-color: var(--error-color);
+    }
+    
+    .status-indicator.info {
+        background-color: var(--info-color);
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+    
+    /* Mejoras en notificaciones */
+    .notification-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-md) var(--spacing-lg);
+        box-shadow: var(--shadow-lg);
+        z-index: 9999;
+        animation: slideInRight 0.3s ease-out;
+        max-width: 400px;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    /* Mejoras en campos de formulario */
+    .form-field-required::after {
+        content: ' *';
+        color: var(--error-color);
+        font-weight: bold;
+    }
+    
+    .form-field-error {
+        border-color: var(--error-color) !important;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+    }
+    
+    .form-field-success {
+        border-color: var(--success-color) !important;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+    }
+    
+    /* Mejoras en cards interactivas */
+    .interactive-card {
+        cursor: pointer;
+        transition: all var(--transition-base);
+    }
+    
+    .interactive-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .interactive-card:active {
+        transform: translateY(-2px);
+    }
+    
+    /* Mejoras en spinners */
+    .spinner-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+    
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid var(--bg-secondary);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    /* Mejoras en mensajes de éxito/error */
+    .message-box {
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--border-radius);
+        margin-bottom: var(--spacing-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+    
+    .message-box.success {
+        background: rgba(16, 185, 129, 0.1);
+        border-left: 4px solid var(--success-color);
+        color: #065f46;
+    }
+    
+    .message-box.error {
+        background: rgba(239, 68, 68, 0.1);
+        border-left: 4px solid var(--error-color);
+        color: #991b1b;
+    }
+    
+    .message-box.warning {
+        background: rgba(245, 158, 11, 0.1);
+        border-left: 4px solid var(--warning-color);
+        color: #92400e;
+    }
+    
+    .message-box.info {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 4px solid var(--info-color);
+        color: #1e40af;
+    }
+    
+    /* Mejoras en tablas con hover mejorado */
+    .dataframe tbody tr {
+        transition: all var(--transition-fast);
+    }
+    
+    .dataframe tbody tr:hover {
+        background: var(--bg-secondary) !important;
+        transform: scale(1.01);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    /* Mejoras en inputs con focus mejorado */
+    .stTextInput > div > div > input:focus,
+    .stTextArea > div > div > textarea:focus,
+    .stSelectbox > div > div > select:focus {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.15) !important;
+        outline: none !important;
+    }
+    
+    /* Mejoras en badges de estado */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-badge.pending {
+        background: rgba(245, 158, 11, 0.2);
+        color: #92400e;
+    }
+    
+    .status-badge.completed {
+        background: rgba(16, 185, 129, 0.2);
+        color: #065f46;
+    }
+    
+    .status-badge.in-progress {
+        background: rgba(59, 130, 246, 0.2);
+        color: #1e40af;
+    }
+    
+    .status-badge.cancelled {
+        background: rgba(239, 68, 68, 0.2);
+        color: #991b1b;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -865,12 +1143,8 @@ def format_date(date_obj: datetime) -> str:
 
 # --- FUNCIONES HELPER PARA ICONOS SVG PROFESIONALES ---
 
-def get_icon(icon_name: str, size: str = "md") -> str:
-    """Retorna el HTML de un icono SVG profesional con mejor renderizado"""
-    size_map = {"sm": "16px", "md": "20px", "lg": "24px"}
-    icon_size = size_map.get(size, "20px")
-    
-    # Usar símbolos Unicode simples para mejor compatibilidad
+def get_icon_symbol(icon_name: str) -> str:
+    """Retorna solo el símbolo Unicode del icono (para usar en botones de Streamlit)"""
     icon_symbols = {
         "dashboard": "📊",
         "documents": "📄",
@@ -891,9 +1165,20 @@ def get_icon(icon_name: str, size: str = "md") -> str:
         "alert": "⚠️",
         "project": "📁",
         "settings": "⚙️",
+        "edit": "✏️",
+        "delete": "🗑️",
+        "save": "💾",
+        "search": "🔍",
+        "filter": "🔽",
+        "refresh": "🔄",
     }
-    
-    symbol = icon_symbols.get(icon_name, "")
+    return icon_symbols.get(icon_name, "")
+
+def get_icon(icon_name: str, size: str = "md") -> str:
+    """Retorna el HTML de un icono para usar en markdown (NO para botones)"""
+    size_map = {"sm": "16px", "md": "20px", "lg": "24px"}
+    icon_size = size_map.get(size, "20px")
+    symbol = get_icon_symbol(icon_name)
     if symbol:
         return f'<span style="font-size: {icon_size}; display: inline-block; vertical-align: middle; margin-right: 4px;">{symbol}</span>'
     return ""
@@ -911,21 +1196,54 @@ def create_download_button(data, filename: str, label: str = "Descargar") -> Non
     if isinstance(data, pd.DataFrame):
         csv = data.to_csv(index=False).encode('utf-8')
         st.download_button(
-            label=f'{get_icon("download", "sm")} {label}',
+            label=f'{get_icon_symbol("download")} {label}',
             data=csv,
             file_name=filename,
             mime="text/csv",
-            use_container_width=True
+            use_container_width=True,
+            help=f"Descargar {filename}"
         )
     elif isinstance(data, dict):
         json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str).encode('utf-8')
         st.download_button(
-            label=f'{get_icon("download", "sm")} {label}',
+            label=f'{get_icon_symbol("download")} {label}',
             data=json_str,
             file_name=filename,
             mime="application/json",
-            use_container_width=True
+            use_container_width=True,
+            help=f"Descargar {filename}"
         )
+
+def show_success_message(message: str, duration: int = 3) -> None:
+    """Muestra un mensaje de éxito mejorado"""
+    st.success(f'{get_icon_symbol("check")} {message}')
+    time.sleep(duration)
+
+def show_error_message(message: str) -> None:
+    """Muestra un mensaje de error mejorado"""
+    st.error(f'{get_icon_symbol("alert")} {message}')
+
+def show_warning_message(message: str) -> None:
+    """Muestra un mensaje de advertencia mejorado"""
+    st.warning(f'{get_icon_symbol("alert")} {message}')
+
+def show_info_message(message: str) -> None:
+    """Muestra un mensaje informativo mejorado"""
+    st.info(f'{get_icon_symbol("alert")} {message}')
+
+def confirm_action(message: str, action_label: str = "Confirmar") -> bool:
+    """Muestra un diálogo de confirmación"""
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.warning(f'⚠️ {message}')
+        col_confirm, col_cancel = st.columns(2)
+        with col_confirm:
+            if st.button(f'{get_icon_symbol("check")} {action_label}', type="primary", use_container_width=True, key=f"confirm_{int(time.time())}"):
+                return True
+        with col_cancel:
+            if st.button("Cancelar", use_container_width=True, key=f"cancel_{int(time.time())}"):
+                return False
+    return False
 
 # --- FUNCIONES DE PERSISTENCIA JSON ---
 
@@ -1873,11 +2191,13 @@ def view_dashboard_admin():
                     }
                     with st.spinner("Guardando actividad..."):
                         if dm.add_activity(activity_data):
-                            st.success(f'{get_icon("check", "sm")} **Actividad "{act_name}" agregada correctamente**')
+                            show_success_message(f'Actividad "{act_name}" agregada correctamente', 2)
                             time.sleep(0.5)
                             st.rerun()
+                        else:
+                            show_error_message("Error al guardar la actividad. Intenta nuevamente.")
                 else:
-                    st.error(f'{get_icon("alert", "sm")} **Completa los campos obligatorios (*)**')
+                    show_error_message("Completa los campos obligatorios (*)")
         
         st.divider()
         st.write("**Actividades Registradas**")
@@ -1915,7 +2235,7 @@ def view_dashboard_admin():
             pers_dni = st.text_input("DNI/RUT", placeholder="12.345.678-9", help="Documento de identidad")
             pers_start_date = st.date_input("Fecha de Ingreso", value=datetime.now().date(), help="Fecha en que comenzó a trabajar")
             
-            submitted = st.form_submit_button(f'{get_icon("add", "sm")} Registrar Personal', type="primary", use_container_width=True)
+            submitted = st.form_submit_button(f'{get_icon_symbol("add")} Registrar Personal', type="primary", use_container_width=True)
             
             if submitted:
                 if pers_name and pers_role:
@@ -1993,13 +2313,18 @@ def view_dashboard_admin():
             
             if submitted:
                 if budget_amount > 0:
-                    with st.spinner("Registrando gasto..."):
-                        if dm.update_budget(budget_category, budget_amount):
-                            st.success(f'{get_icon("check", "sm")} **Gasto de ${budget_amount:,.0f} registrado en {budget_category}**')
-                            time.sleep(0.5)
-                            st.rerun()
+                    if budget_amount > budget['categories'][budget_category]['budget']:
+                        show_warning_message(f"El monto excede el presupuesto asignado para {budget_category}")
+                    else:
+                        with st.spinner("Registrando gasto..."):
+                            if dm.update_budget(budget_category, budget_amount):
+                                show_success_message(f'Gasto de ${budget_amount:,.0f} registrado en {budget_category}', 2)
+                                time.sleep(0.5)
+                                st.rerun()
+                            else:
+                                show_error_message("Error al registrar el gasto. Intenta nuevamente.")
                 else:
-                    st.error(f'{get_icon("alert", "sm")} **Ingresa un monto válido mayor a cero**')
+                    show_error_message("Ingresa un monto válido mayor a cero")
         
         st.divider()
         st.write("**Desglose por Categoría**")
@@ -2118,13 +2443,13 @@ def view_dashboard_admin():
                     
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button(f"{get_icon('check', 'sm')} Aprobar", key=f"approve_{imp['id']}", use_container_width=True):
+                        if st.button(f"{get_icon_symbol('check')} Aprobar", key=f"approve_{imp['id']}", use_container_width=True):
                             if dm.update_improvement_status(imp['id'], "Aprobada"):
                                 st.success(f'{get_icon("check", "sm")} **Mejora aprobada**')
                                 time.sleep(0.5)
                                 st.rerun()
                     with col2:
-                        if st.button(f"{get_icon('check', 'sm')} Implementar", key=f"implement_{imp['id']}", use_container_width=True):
+                        if st.button(f"{get_icon_symbol('check')} Implementar", key=f"implement_{imp['id']}", use_container_width=True):
                             if dm.update_improvement_status(imp['id'], "Implementada"):
                                 st.success(f'{get_icon("check", "sm")} **Mejora marcada como implementada**')
                                 time.sleep(0.5)
@@ -2156,7 +2481,7 @@ def view_docs():
             with col_version:
                 file_version = st.text_input("Versión", value="v1.0", placeholder="v1.0")
             
-            if st.button(f'{get_icon("upload", "sm")} Guardar Archivo', use_container_width=True, type="primary"):
+            if st.button(f'{get_icon_symbol("upload")} Guardar Archivo', use_container_width=True, type="primary", key="btn_guardar_archivo_docs"):
                 with st.spinner("Subiendo archivo..."):
                     if dm.upload_file(uploaded_file, {"version": file_version}):
                         st.success(f'{get_icon("check", "sm")} **Archivo "{uploaded_file.name}" guardado correctamente**')
@@ -2229,7 +2554,7 @@ def view_qa():
         st.markdown(f'<p><strong>{get_icon("camera", "sm")} Evidencia Fotográfica</strong></p>', unsafe_allow_html=True)
         photo = st.camera_input("Tomar foto", help="La foto se comprimirá automáticamente", label_visibility="collapsed")
         
-        submitted = st.form_submit_button(f'{get_icon("check", "sm")} Guardar Reporte', type="primary", use_container_width=True)
+        submitted = st.form_submit_button(f'{get_icon_symbol("check")} Guardar Reporte', type="primary", use_container_width=True)
         
         if submitted:
             if not location.strip():
@@ -2319,7 +2644,7 @@ def view_worker():
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button(f'{get_icon("location", "sm")} MARCAR ENTRADA', type="primary", use_container_width=True):
+        if st.button(f'{get_icon_symbol("location")} MARCAR ENTRADA', type="primary", use_container_width=True, key="btn_entrada"):
             current_time = datetime.now().strftime("%H:%M")
             st.session_state.last_entry = current_time
             st.session_state.entry_date = current_date
@@ -2331,7 +2656,7 @@ def view_worker():
             logger.info(f"Entrada registrada por {st.session_state.user_info['name']} a las {current_time}")
             
     with col2:
-        if st.button(f'{get_icon("check", "sm")} MARCAR SALIDA', use_container_width=True):
+        if st.button(f'{get_icon_symbol("check")} MARCAR SALIDA', use_container_width=True, key="btn_salida"):
             if 'last_entry' not in st.session_state:
                 st.warning("⚠️ Debes marcar entrada primero")
             else:
@@ -2425,24 +2750,29 @@ def view_worker():
         incident_photo = st.camera_input("Tomar foto del incidente")
         incident_desc = st.text_area("Descripción del incidente", placeholder="Describe qué ocurrió, dónde y cuándo...")
         
-        if st.button(f'{get_icon("check", "sm")} ENVIAR REPORTE', type="primary", use_container_width=True):
+        if st.button(f'{get_icon_symbol("check")} ENVIAR REPORTE', type="primary", use_container_width=True, key="btn_enviar_reporte_incidente", help="Envía el reporte de incidente al equipo de seguridad"):
             if incident_photo or incident_desc.strip():
-                with st.spinner("Enviando reporte..."):
-                    st.error("🚨 Reporte enviado a Prevención de Riesgos")
-                    st.success("Tu reporte ha sido registrado. El equipo de seguridad se contactará contigo.")
-                    logger.warning(f"Incidente reportado por {st.session_state.user_info['name']}")
-                    if incident_photo:
-                        try:
-                            photo_bytes = incident_photo.getvalue()
-                            compressed = compress_image(photo_bytes)
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            incident_path = PHOTOS_DIR / f"incident_{timestamp}.jpg"
-                            incident_path.write_bytes(compressed)
-                            logger.info(f"Foto de incidente guardada: {incident_path}")
-                        except Exception as e:
-                            logger.error(f"Error guardando foto de incidente: {e}")
+                if confirm_action("¿Estás seguro de enviar este reporte de incidente? Se notificará inmediatamente al equipo de seguridad."):
+                    with st.spinner("Enviando reporte..."):
+                        show_error_message("🚨 Reporte enviado a Prevención de Riesgos")
+                        show_success_message("Tu reporte ha sido registrado. El equipo de seguridad se contactará contigo.", 3)
+                        logger.warning(f"Incidente reportado por {st.session_state.user_info['name']}")
+                        if incident_photo:
+                            try:
+                                photo_bytes = incident_photo.getvalue()
+                                compressed = compress_image(photo_bytes)
+                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                incident_path = PHOTOS_DIR / f"incident_{timestamp}.jpg"
+                                incident_path.write_bytes(compressed)
+                                logger.info(f"Foto de incidente guardada: {incident_path}")
+                                show_success_message("Foto del incidente guardada correctamente", 2)
+                            except Exception as e:
+                                logger.error(f"Error guardando foto de incidente: {e}")
+                                show_error_message(f"Error al guardar la foto: {str(e)}")
+                        time.sleep(1)
+                        st.rerun()
             else:
-                st.warning("⚠️ **Toma una foto o escribe una descripción del incidente**")
+                show_warning_message("Toma una foto o escribe una descripción del incidente")
     
     # --- INFORMACIÓN DEL TRABAJADOR ---
     st.divider()
@@ -2621,7 +2951,7 @@ def view_client():
         height=200
     )
     
-    if st.button(f'{get_icon("add", "sm")} Nueva Solicitud', use_container_width=True):
+    if st.button(f'{get_icon_symbol("add")} Nueva Solicitud', use_container_width=True, key="btn_nueva_solicitud_cliente"):
         st.info(f'{get_icon("chat", "sm")} Usa el chat para enviar nuevas solicitudes o contacta directamente al equipo')
     
     st.divider()
@@ -2756,7 +3086,7 @@ def view_projects():
             
             proj_description = st.text_area("Descripción", placeholder="Descripción del proyecto...", height=100)
             
-            submitted = st.form_submit_button(f'{get_icon("add", "sm")} Crear Proyecto', type="primary", use_container_width=True)
+            submitted = st.form_submit_button(f'{get_icon_symbol("add")} Crear Proyecto', type="primary", use_container_width=True)
             
             if submitted:
                 if proj_name:
@@ -2799,7 +3129,7 @@ def view_projects():
                     
                     with col_actions:
                         if not is_current:
-                            if st.button(f"{get_icon('check', 'sm')} Seleccionar", key=f"select_{project['id']}", use_container_width=True):
+                            if st.button(f"{get_icon_symbol('check')} Seleccionar", key=f"btn_select_project_{project['id']}", use_container_width=True):
                                 dm.set_current_project(project['id'])
                                 st.success(f"Proyecto '{project.get('name')}' seleccionado")
                                 st.rerun()
