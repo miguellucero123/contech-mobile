@@ -4,6 +4,7 @@ import time
 import os
 import logging
 import json
+import base64
 from datetime import datetime, timedelta
 from pathlib import Path
 from io import BytesIO
@@ -42,14 +43,14 @@ logger = logging.getLogger(__name__)
 
 # --- CONFIGURACIÓN DE LA PÁGINA (MOBILE FRIENDLY) ---
 st.set_page_config(
-    page_title="ConTech Mobile",
-    page_icon="👷‍♂️",
+    page_title="G&H Constructores - Gestión de Obra",
+    page_icon="🏗️",
     layout="wide", # En celular se colapsa automáticamente a una columna
     initial_sidebar_state="auto", # En celular arranca cerrado
     menu_items={
         'Get Help': None,
         'Report a bug': None,
-        'About': "ConTech Mobile - Gestión de Obra v1.0"
+        'About': "G&H Constructores - Sistema de Gestión de Obra v2.0"
     }
 )
 
@@ -94,75 +95,664 @@ if (window.matchMedia('(display-mode: standalone)').matches) {
 </script>
 """, unsafe_allow_html=True)
 
-# --- ESTILOS CSS OPTIMIZADOS PARA MÓVIL ---
+# --- SISTEMA DE TEMAS ESCALONADO Y ESTILOS PROFESIONALES ---
 st.markdown("""
 <style>
-    /* Estilos base */
-    .stMetric {
-        background-color: #f8fafc;
-        border: 1px solid #e2e8f0;
-        padding: 10px;
-        border-radius: 10px;
-    }
-    .main-header {
-        color: #1e293b;
-        font-weight: 700;
+    /* ============================================
+       VARIABLES CSS - SISTEMA DE TEMAS ESCALONADO
+       ============================================ */
+    :root {
+        /* Tema Principal - Azul Profesional G&H Constructores */
+        --primary-color: #1e40af;
+        --primary-dark: #1e3a8a;
+        --primary-light: #3b82f6;
+        --secondary-color: #64748b;
+        --accent-color: #0ea5e9;
+        --company-primary: #1e40af;
+        --company-secondary: #64748b;
+        
+        /* Colores de Fondo */
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-tertiary: #f1f5f9;
+        --bg-card: #ffffff;
+        
+        /* Colores de Texto */
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        
+        /* Bordes y Sombras */
+        --border-color: #e2e8f0;
+        --border-radius: 12px;
+        --border-radius-sm: 8px;
+        --border-radius-lg: 16px;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        
+        /* Estados */
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --error-color: #ef4444;
+        --info-color: #3b82f6;
+        
+        /* Espaciado */
+        --spacing-xs: 4px;
+        --spacing-sm: 8px;
+        --spacing-md: 16px;
+        --spacing-lg: 24px;
+        --spacing-xl: 32px;
+        
+        /* Transiciones */
+        --transition-fast: 150ms ease-in-out;
+        --transition-base: 250ms ease-in-out;
+        --transition-slow: 350ms ease-in-out;
     }
     
-    /* OPTIMIZACIONES PARA CELULAR (Media Queries) */
+    /* Tema Oscuro (si se implementa) */
+    [data-theme="dark"] {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-tertiary: #334155;
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --border-color: #334155;
+    }
+    
+    /* ============================================
+       ESTILOS BASE Y RESET
+       ============================================ */
+    * {
+        box-sizing: border-box;
+    }
+    
+    /* Logo de la empresa */
+    .company-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-md) 0;
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .company-logo img {
+        max-height: 80px;
+        width: auto;
+        object-fit: contain;
+    }
+    
+    .company-header {
+        text-align: center;
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .company-name {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        letter-spacing: 0.05em;
+        margin: var(--spacing-sm) 0;
+    }
+    
+    .company-tagline {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        font-weight: 400;
+    }
+    
+    .main-header {
+        color: var(--text-primary);
+        font-weight: 700;
+        font-size: 2rem;
+        margin-bottom: var(--spacing-lg);
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .main-header .icon {
+        display: inline-block;
+        vertical-align: middle;
+    }
+    
+    /* ============================================
+       MÉTRICAS Y CARDS
+       ============================================ */
+    .stMetric {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        padding: var(--spacing-lg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        transition: all var(--transition-base);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stMetric::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--primary-color);
+        transition: width var(--transition-base);
+    }
+    
+    .stMetric:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .stMetric:hover::before {
+        width: 6px;
+    }
+    
+    /* ============================================
+       BOTONES PROFESIONALES
+       ============================================ */
+    .stButton > button {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius);
+        padding: var(--spacing-md) var(--spacing-lg);
+        font-weight: 600;
+        font-size: 16px;
+        transition: all var(--transition-base);
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+        min-height: 48px;
+    }
+    
+    .stButton > button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
+    }
+    
+    .stButton > button:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .stButton > button:active {
+        transform: translateY(0);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .stButton > button:focus {
+        outline: 2px solid var(--primary-light);
+        outline-offset: 2px;
+    }
+    
+    /* Botón Secundario */
+    .stButton > button[kind="secondary"] {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+    
+    .stButton > button[kind="secondary"]:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--primary-color);
+    }
+    
+    /* ============================================
+       INPUTS Y FORMULARIOS
+       ============================================ */
+    .stTextInput > div > div > input,
+    .stTextArea > div > div > textarea,
+    .stSelectbox > div > div > select {
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius-sm);
+        padding: var(--spacing-md);
+        font-size: 16px;
+        transition: all var(--transition-base);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stTextArea > div > div > textarea:focus,
+    .stSelectbox > div > div > select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        outline: none;
+    }
+    
+    .stTextInput > div > div > input:hover,
+    .stTextArea > div > div > textarea:hover {
+        border-color: var(--primary-light);
+    }
+    
+    /* ============================================
+       TABS PROFESIONALES
+       ============================================ */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: var(--spacing-sm);
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: var(--spacing-sm);
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
+        transition: all var(--transition-base);
+        font-weight: 500;
+        color: var(--text-secondary);
+        min-height: 48px;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background: var(--bg-secondary);
+        color: var(--primary-color);
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: var(--bg-primary);
+        color: var(--primary-color);
+        border-bottom: 3px solid var(--primary-color);
+        font-weight: 600;
+    }
+    
+    /* ============================================
+       DATAFRAMES Y TABLAS
+       ============================================ */
+    .stDataFrame {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+    }
+    
+    .dataframe {
+        font-size: 14px;
+    }
+    
+    .dataframe thead {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+    
+    .dataframe tbody tr {
+        transition: background var(--transition-fast);
+    }
+    
+    .dataframe tbody tr:hover {
+        background: var(--bg-secondary);
+    }
+    
+    /* ============================================
+       RADIO BUTTONS Y CHECKBOXES
+       ============================================ */
+    .stRadio > div {
+        gap: var(--spacing-sm);
+    }
+    
+    .stRadio label {
+        padding: var(--spacing-md);
+        border-radius: var(--border-radius-sm);
+        transition: all var(--transition-base);
+        cursor: pointer;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .stRadio label:hover {
+        background: var(--bg-secondary);
+    }
+    
+    .stRadio input[type="radio"]:checked + label {
+        background: var(--primary-color);
+        color: white;
+        font-weight: 600;
+    }
+    
+    /* ============================================
+       ALERTAS Y NOTIFICACIONES
+       ============================================ */
+    .stAlert {
+        border-radius: var(--border-radius);
+        border-left: 4px solid;
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .stAlert[data-baseweb="alert"] {
+        border-left-color: var(--info-color);
+    }
+    
+    /* ============================================
+       ICONOS SVG PROFESIONALES
+       ============================================ */
+    .icon {
+        width: 20px;
+        height: 20px;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: var(--spacing-sm);
+        fill: currentColor;
+    }
+    
+    .icon-lg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .icon-sm {
+        width: 16px;
+        height: 16px;
+    }
+    
+    /* ============================================
+       BOTONES DE ACCIÓN CON ICONOS
+       ============================================ */
+    .action-button {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--border-radius-sm);
+        border: 1px solid var(--border-color);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .action-button:hover {
+        background: var(--bg-secondary);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .action-button.download {
+        background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+        color: white;
+        border: none;
+    }
+    
+    .action-button.download:hover {
+        background: linear-gradient(135deg, #059669 0%, var(--success-color) 100%);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* ============================================
+       CARDS Y CONTENEDORES
+       ============================================ */
+    .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-lg);
+        box-shadow: var(--shadow-sm);
+        transition: all var(--transition-base);
+    }
+    
+    .card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    /* ============================================
+       OPTIMIZACIONES MÓVIL
+       ============================================ */
     @media (max-width: 768px) {
         .main-header {
             font-size: 1.5rem !important;
             text-align: center;
         }
-        /* Botones más grandes para dedos (Touch targets) */
-        .stButton button {
+        
+        .stButton > button {
             min-height: 55px !important;
             font-size: 18px !important;
-            border-radius: 12px !important;
-            margin-bottom: 10px !important;
             width: 100% !important;
+            margin-bottom: var(--spacing-md) !important;
         }
-        /* Radio buttons más grandes en móvil */
+        
         .stRadio > div {
             flex-direction: column !important;
         }
+        
         .stRadio label {
-            min-height: 44px !important;
-            padding: 10px !important;
+            min-height: 48px !important;
+            padding: var(--spacing-md) !important;
         }
-        /* Tabs más grandes */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 8px;
-        }
+        
         .stTabs [data-baseweb="tab"] {
             min-height: 48px !important;
-            padding: 12px 16px !important;
+            padding: var(--spacing-md) var(--spacing-lg) !important;
+            font-size: 14px;
         }
-        /* Dataframes optimizados para móvil */
+        
         .dataframe {
-            font-size: 14px !important;
+            font-size: 12px !important;
         }
-        /* Ocultar elementos no esenciales en móvil si es necesario */
+        
+        .stTextInput input,
+        .stTextArea textarea {
+            font-size: 16px !important;
+        }
+        
         .desktop-only {
-            display: none;
-        }
-        /* Inputs más grandes */
-        .stTextInput input, .stTextArea textarea {
-            font-size: 16px !important; /* Evita zoom en iOS */
+            display: none !important;
         }
     }
     
-    /* Escritorio */
-    @media (min-width: 769px) {
-        .main-header {
-            font-size: 2.5rem;
+    /* ============================================
+       ANIMACIONES Y TRANSICIONES
+       ============================================ */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
     }
     
-    /* Mejoras generales */
+    @keyframes slideIn {
+        from {
+            transform: translateX(-20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .fade-in {
+        animation: fadeIn var(--transition-base);
+    }
+    
+    .slide-in {
+        animation: slideIn var(--transition-base);
+    }
+    
+    /* ============================================
+       MEJORAS GENERALES
+       ============================================ */
     .stDataFrame {
         overflow-x: auto;
+    }
+    
+    /* Scrollbar personalizado */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+    }
+    
+    /* ============================================
+       ESTILOS PROFESIONALES ADICIONALES
+       ============================================ */
+    
+    /* Sidebar mejorado */
+    .css-1d391kg {
+        background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    }
+    
+    /* Mejoras en contenedores */
+    .stContainer {
+        padding: var(--spacing-md);
+    }
+    
+    /* Cards con sombra profesional */
+    .project-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-md);
+        box-shadow: var(--shadow-sm);
+        transition: all var(--transition-base);
+    }
+    
+    .project-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+        border-color: var(--primary-color);
+    }
+    
+    /* Mejoras en formularios */
+    .stForm {
+        background: var(--bg-secondary);
+        padding: var(--spacing-lg);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+    }
+    
+    /* Badges y etiquetas */
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .badge-success {
+        background: var(--success-color);
+        color: white;
+    }
+    
+    .badge-warning {
+        background: var(--warning-color);
+        color: white;
+    }
+    
+    .badge-error {
+        background: var(--error-color);
+        color: white;
+    }
+    
+    .badge-info {
+        background: var(--info-color);
+        color: white;
+    }
+    
+    /* Mejoras en tablas */
+    .dataframe {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .dataframe th {
+        background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        padding: var(--spacing-md);
+    }
+    
+    .dataframe td {
+        padding: var(--spacing-md);
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .dataframe tr:last-child td {
+        border-bottom: none;
+    }
+    
+    /* Mejoras en selectores */
+    .stSelectbox > div > div {
+        background: var(--bg-primary);
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius-sm);
+    }
+    
+    .stSelectbox > div > div:hover {
+        border-color: var(--primary-light);
+    }
+    
+    /* Mejoras en expanders */
+    .streamlit-expanderHeader {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    /* Efectos de hover mejorados */
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    }
+    
+    /* Mejoras en métricas */
+    .stMetric {
+        background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    }
+    
+    /* Footer profesional */
+    .footer {
+        text-align: center;
+        padding: var(--spacing-lg);
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        border-top: 1px solid var(--border-color);
+        margin-top: var(--spacing-xl);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -273,6 +863,70 @@ def format_date(date_obj: datetime) -> str:
     """Formatea una fecha de manera consistente"""
     return date_obj.strftime("%d/%m/%Y %H:%M")
 
+# --- FUNCIONES HELPER PARA ICONOS SVG PROFESIONALES ---
+
+def get_icon(icon_name: str, size: str = "md") -> str:
+    """Retorna el HTML de un icono SVG profesional con mejor renderizado"""
+    size_map = {"sm": "16px", "md": "20px", "lg": "24px"}
+    icon_size = size_map.get(size, "20px")
+    
+    # Usar símbolos Unicode simples para mejor compatibilidad
+    icon_symbols = {
+        "dashboard": "📊",
+        "documents": "📄",
+        "quality": "✅",
+        "chat": "💬",
+        "user": "👤",
+        "upload": "⬆️",
+        "download": "⬇️",
+        "add": "➕",
+        "calendar": "📅",
+        "chart": "📈",
+        "money": "💰",
+        "team": "👥",
+        "building": "🏗️",
+        "location": "📍",
+        "camera": "📷",
+        "check": "✓",
+        "alert": "⚠️",
+        "project": "📁",
+        "settings": "⚙️",
+    }
+    
+    symbol = icon_symbols.get(icon_name, "")
+    if symbol:
+        return f'<span style="font-size: {icon_size}; display: inline-block; vertical-align: middle; margin-right: 4px;">{symbol}</span>'
+    return ""
+
+def render_header_with_icon(title: str, icon_name: str = "dashboard") -> None:
+    """Renderiza un header con icono profesional"""
+    icon_html = get_icon(icon_name, "lg")
+    st.markdown(
+        f'<div class="main-header fade-in">{icon_html} {title}</div>',
+        unsafe_allow_html=True
+    )
+
+def create_download_button(data, filename: str, label: str = "Descargar") -> None:
+    """Crea un botón de descarga profesional"""
+    if isinstance(data, pd.DataFrame):
+        csv = data.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label=f'{get_icon("download", "sm")} {label}',
+            data=csv,
+            file_name=filename,
+            mime="text/csv",
+            use_container_width=True
+        )
+    elif isinstance(data, dict):
+        json_str = json.dumps(data, indent=2, ensure_ascii=False, default=str).encode('utf-8')
+        st.download_button(
+            label=f'{get_icon("download", "sm")} {label}',
+            data=json_str,
+            file_name=filename,
+            mime="application/json",
+            use_container_width=True
+        )
+
 # --- FUNCIONES DE PERSISTENCIA JSON ---
 
 def load_json_db():
@@ -301,6 +955,12 @@ def get_default_db():
     """Retorna estructura por defecto de la base de datos"""
     return {
         "projects": [],
+        "current_project_id": None
+    }
+
+def get_default_project_data():
+    """Retorna estructura por defecto de un proyecto"""
+    return {
         "activities": [],
         "personnel": [],
         "improvements": [],
@@ -524,88 +1184,187 @@ class DataManager:
             st.session_state.json_db = db_data
             save_json_db(db_data)
     
-    def add_activity(self, activity_data):
-        """Agrega una nueva actividad"""
-        db = self.get_db()
-        activity_data["id"] = len(db["activities"]) + 1
-        activity_data["created_at"] = datetime.now().isoformat()
-        db["activities"].append(activity_data)
-        self.save_db(db)
-        return True
+    def get_current_project_id(self):
+        """Obtiene el ID del proyecto actual"""
+        if 'current_project_id' not in st.session_state:
+            db = self.get_db()
+            if db.get("current_project_id"):
+                st.session_state.current_project_id = db["current_project_id"]
+            else:
+                # Si hay proyectos, seleccionar el primero
+                projects = db.get("projects", [])
+                if projects:
+                    st.session_state.current_project_id = projects[0]["id"]
+                else:
+                    st.session_state.current_project_id = None
+        return st.session_state.current_project_id
     
-    def get_activities(self):
-        """Obtiene todas las actividades"""
+    def get_current_project_data(self):
+        """Obtiene los datos del proyecto actual"""
+        project_id = self.get_current_project_id()
+        if not project_id:
+            return get_default_project_data()
+        
         db = self.get_db()
-        return db.get("activities", [])
+        projects = db.get("projects", [])
+        for project in projects:
+            if project.get("id") == project_id:
+                if "data" not in project:
+                    project["data"] = get_default_project_data()
+                return project["data"]
+        return get_default_project_data()
     
-    def add_personnel(self, personnel_data):
-        """Agrega personal a la base de datos"""
+    def save_current_project_data(self, project_data):
+        """Guarda los datos del proyecto actual"""
+        project_id = self.get_current_project_id()
+        if not project_id:
+            return False
+        
         db = self.get_db()
-        personnel_data["id"] = len(db["personnel"]) + 1
-        personnel_data["created_at"] = datetime.now().isoformat()
-        db["personnel"].append(personnel_data)
-        self.save_db(db)
-        return True
-    
-    def get_personnel(self):
-        """Obtiene todo el personal"""
-        db = self.get_db()
-        return db.get("personnel", [])
-    
-    def add_improvement(self, improvement_data):
-        """Agrega una mejora o sugerencia"""
-        db = self.get_db()
-        improvement_data["id"] = len(db["improvements"]) + 1
-        improvement_data["created_at"] = datetime.now().isoformat()
-        improvement_data["status"] = "Pendiente"
-        db["improvements"].append(improvement_data)
-        self.save_db(db)
-        return True
-    
-    def get_improvements(self):
-        """Obtiene todas las mejoras"""
-        db = self.get_db()
-        return db.get("improvements", [])
-    
-    def update_improvement_status(self, improvement_id, new_status):
-        """Actualiza el estado de una mejora"""
-        db = self.get_db()
-        for improvement in db.get("improvements", []):
-            if improvement.get("id") == improvement_id:
-                improvement["status"] = new_status
-                improvement["updated_at"] = datetime.now().isoformat()
+        projects = db.get("projects", [])
+        for project in projects:
+            if project.get("id") == project_id:
+                project["data"] = project_data
                 self.save_db(db)
                 return True
         return False
     
-    def update_budget(self, category, amount):
-        """Actualiza el presupuesto ejecutado"""
+    def create_project(self, project_name, description="", location="", start_date=None, budget_total=0):
+        """Crea un nuevo proyecto"""
         db = self.get_db()
-        if category in db["budget"]["categories"]:
-            db["budget"]["categories"][category]["executed"] += amount
-            db["budget"]["executed"] += amount
-            self.save_db(db)
+        projects = db.get("projects", [])
+        
+        new_project = {
+            "id": len(projects) + 1,
+            "name": project_name,
+            "description": description,
+            "location": location,
+            "start_date": start_date.strftime("%d/%m/%Y") if start_date else datetime.now().strftime("%d/%m/%Y"),
+            "created_at": datetime.now().isoformat(),
+            "status": "Activo",
+            "budget_total": budget_total,
+            "data": get_default_project_data()
+        }
+        
+        if budget_total > 0:
+            new_project["data"]["budget"]["total"] = budget_total
+        
+        projects.append(new_project)
+        db["projects"] = projects
+        
+        # Si es el primer proyecto, establecerlo como actual
+        if len(projects) == 1:
+            db["current_project_id"] = new_project["id"]
+            st.session_state.current_project_id = new_project["id"]
+        
+        self.save_db(db)
+        return new_project["id"]
+    
+    def get_projects(self):
+        """Obtiene todos los proyectos"""
+        db = self.get_db()
+        return db.get("projects", [])
+    
+    def set_current_project(self, project_id):
+        """Establece el proyecto actual"""
+        db = self.get_db()
+        db["current_project_id"] = project_id
+        st.session_state.current_project_id = project_id
+        self.save_db(db)
+    
+    def get_project(self, project_id):
+        """Obtiene un proyecto por ID"""
+        db = self.get_db()
+        projects = db.get("projects", [])
+        for project in projects:
+            if project.get("id") == project_id:
+                return project
+        return None
+    
+    def add_activity(self, activity_data):
+        """Agrega una nueva actividad al proyecto actual"""
+        project_data = self.get_current_project_data()
+        activity_data["id"] = len(project_data["activities"]) + 1
+        activity_data["created_at"] = datetime.now().isoformat()
+        project_data["activities"].append(activity_data)
+        self.save_current_project_data(project_data)
+        return True
+    
+    def get_activities(self):
+        """Obtiene todas las actividades del proyecto actual"""
+        project_data = self.get_current_project_data()
+        return project_data.get("activities", [])
+    
+    def add_personnel(self, personnel_data):
+        """Agrega personal al proyecto actual"""
+        project_data = self.get_current_project_data()
+        personnel_data["id"] = len(project_data["personnel"]) + 1
+        personnel_data["created_at"] = datetime.now().isoformat()
+        project_data["personnel"].append(personnel_data)
+        self.save_current_project_data(project_data)
+        return True
+    
+    def get_personnel(self):
+        """Obtiene todo el personal del proyecto actual"""
+        project_data = self.get_current_project_data()
+        return project_data.get("personnel", [])
+    
+    def add_improvement(self, improvement_data):
+        """Agrega una mejora o sugerencia al proyecto actual"""
+        project_data = self.get_current_project_data()
+        improvement_data["id"] = len(project_data["improvements"]) + 1
+        improvement_data["created_at"] = datetime.now().isoformat()
+        improvement_data["status"] = "Pendiente"
+        project_data["improvements"].append(improvement_data)
+        self.save_current_project_data(project_data)
+        return True
+    
+    def get_improvements(self):
+        """Obtiene todas las mejoras del proyecto actual"""
+        project_data = self.get_current_project_data()
+        return project_data.get("improvements", [])
+    
+    def update_improvement_status(self, improvement_id, new_status):
+        """Actualiza el estado de una mejora"""
+        project_data = self.get_current_project_data()
+        for improvement in project_data.get("improvements", []):
+            if improvement.get("id") == improvement_id:
+                improvement["status"] = new_status
+                improvement["updated_at"] = datetime.now().isoformat()
+                self.save_current_project_data(project_data)
+                return True
+        return False
+    
+    def update_budget(self, category, amount):
+        """Actualiza el presupuesto ejecutado del proyecto actual"""
+        project_data = self.get_current_project_data()
+        budget = project_data.get("budget", get_default_project_data()["budget"])
+        if category in budget["categories"]:
+            budget["categories"][category]["executed"] += amount
+            budget["executed"] += amount
+            project_data["budget"] = budget
+            self.save_current_project_data(project_data)
             return True
         return False
     
     def get_budget(self):
-        """Obtiene información del presupuesto"""
-        db = self.get_db()
-        return db.get("budget", get_default_db()["budget"])
+        """Obtiene información del presupuesto del proyecto actual"""
+        project_data = self.get_current_project_data()
+        return project_data.get("budget", get_default_project_data()["budget"])
     
     def add_milestone(self, milestone_data):
-        """Agrega un hito del proyecto"""
-        db = self.get_db()
-        milestone_data["id"] = len(db["milestones"]) + 1
+        """Agrega un hito del proyecto actual"""
+        project_data = self.get_current_project_data()
+        milestone_data["id"] = len(project_data["milestones"]) + 1
         milestone_data["created_at"] = datetime.now().isoformat()
-        db["milestones"].append(milestone_data)
-        self.save_db(db)
+        project_data["milestones"].append(milestone_data)
+        self.save_current_project_data(project_data)
         return True
     
     def get_milestones(self):
-        """Obtiene todos los hitos"""
-        db = self.get_db()
-        return db.get("milestones", [])
+        """Obtiene todos los hitos del proyecto actual"""
+        project_data = self.get_current_project_data()
+        return project_data.get("milestones", [])
     
     def add_alert(self, alert_data):
         """Agrega una alerta"""
@@ -620,6 +1379,21 @@ class DataManager:
         """Obtiene todas las alertas"""
         db = self.get_db()
         return db.get("alerts", [])
+    
+    def export_data(self, data_type: str):
+        """Exporta datos en formato JSON o CSV"""
+        db = self.get_db()
+        if data_type == "all":
+            return db
+        elif data_type == "activities":
+            return db.get("activities", [])
+        elif data_type == "personnel":
+            return db.get("personnel", [])
+        elif data_type == "improvements":
+            return db.get("improvements", [])
+        elif data_type == "milestones":
+            return db.get("milestones", [])
+        return {}
 
 dm = DataManager()
 
@@ -655,8 +1429,26 @@ if 'last_activity' not in st.session_state:
     st.session_state.last_activity = datetime.now()
 
 def login():
-    st.markdown("<br><h2 style='text-align: center;'>🏗️ ConTech Mobile</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: gray;'>Acceso Seguro de Obra</p>", unsafe_allow_html=True)
+    # Mostrar logo de la empresa
+    try:
+        logo_path = "logogyh.jpeg"
+        if Path(logo_path).exists():
+            st.markdown("""
+            <div class="company-logo">
+                <img src="data:image/jpeg;base64,{}" alt="G&H Constructores" />
+            </div>
+            """.format(
+                base64.b64encode(Path(logo_path).read_bytes()).decode()
+            ), unsafe_allow_html=True)
+    except Exception as e:
+        logger.warning(f"No se pudo cargar el logo: {e}")
+    
+    st.markdown("""
+    <div class="company-header">
+        <div class="company-name">G&H CONSTRUCTORES</div>
+        <div class="company-tagline">Sistema de Gestión de Obra</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Usar columnas para centrar en escritorio, en móvil ocupará ancho completo
     col1, col2, col3 = st.columns([1, 6, 1])
@@ -700,10 +1492,20 @@ def logout():
 # --- VISTAS ---
 
 def view_dashboard_admin():
-    st.markdown("<div class='main-header'>📊 Dashboard Ejecutivo</div>", unsafe_allow_html=True)
+    render_header_with_icon("Dashboard Ejecutivo", "dashboard")
+    
+    # Mostrar información del proyecto actual
+    current_project_id = dm.get_current_project_id()
+    if current_project_id:
+        current_project = dm.get_project(current_project_id)
+        if current_project:
+            st.info(f'{get_icon("building", "sm")} **Proyecto:** {current_project.get("name", "Sin nombre")} | 📍 {current_project.get("location", "N/A")}')
+    else:
+        st.warning(f'{get_icon("alert", "sm")} No hay proyecto seleccionado. Ve a "Proyectos" para crear o seleccionar uno.')
+        return
     
     # --- KPIs PRINCIPALES ---
-    st.subheader("📈 Indicadores Clave (KPIs)")
+    st.markdown(f'<h3>{get_icon("chart", "md")} Indicadores Clave (KPIs)</h3>', unsafe_allow_html=True)
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
     
     with kpi1:
@@ -796,7 +1598,7 @@ def view_dashboard_admin():
     col_chart1, col_chart2 = st.columns(2)
     
     with col_chart1:
-        st.subheader("📊 Curva de Avance")
+        st.markdown(f'<h3>{get_icon("chart", "md")} Curva de Avance</h3>', unsafe_allow_html=True)
         # Datos simulados para la curva S
         days = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
         progress_data = pd.DataFrame({
@@ -829,7 +1631,7 @@ def view_dashboard_admin():
     st.divider()
     
     # --- ESTADO DE PROYECTOS/ACTIVIDADES ---
-    st.subheader("🏗️ Estado de Actividades Principales")
+    st.markdown(f'<h3>{get_icon("building", "md")} Estado de Actividades Principales</h3>', unsafe_allow_html=True)
     
     activities = dm.get_activities()
     if activities:
@@ -884,7 +1686,7 @@ def view_dashboard_admin():
     col_personal, col_inspecciones = st.columns(2)
     
     with col_personal:
-        st.subheader("👥 Personal en Obra")
+        st.markdown(f'<h3>{get_icon("team", "md")} Personal en Obra</h3>', unsafe_allow_html=True)
         personnel = dm.get_personnel()
         if personnel:
             pers_df = pd.DataFrame(personnel)
@@ -913,7 +1715,7 @@ def view_dashboard_admin():
             st.info("💡 Registra personal usando el formulario en 'Gestión de Información'")
     
     with col_inspecciones:
-        st.subheader("✅ Inspecciones Recientes")
+        st.markdown(f'<h3>{get_icon("quality", "md")} Inspecciones Recientes</h3>', unsafe_allow_html=True)
         inspections = dm.get_inspections()
         if inspections:
             recent_inspections = pd.DataFrame(inspections[:5])
@@ -937,7 +1739,7 @@ def view_dashboard_admin():
     st.divider()
     
     # --- ALERTAS Y NOTIFICACIONES ---
-    st.subheader("⚠️ Alertas y Notificaciones")
+    st.markdown(f'<h3>{get_icon("alert", "md")} Alertas y Notificaciones</h3>', unsafe_allow_html=True)
     
     alert_col1, alert_col2 = st.columns(2)
     
@@ -954,8 +1756,25 @@ def view_dashboard_admin():
     st.divider()
     
     # --- DOCUMENTOS Y PLANOS ---
-    st.subheader("📂 Documentos Recientes")
+    st.markdown(f'<h3>{get_icon("documents", "md")} Documentos Recientes</h3>', unsafe_allow_html=True)
+    
+    # Obtener documentos primero
     docs = dm.get_docs()
+    
+    # Botón de descarga
+    if docs:
+        col_docs, col_download = st.columns([3, 1])
+        with col_download:
+            docs_df = pd.DataFrame(docs)
+            csv = docs_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label=f'{get_icon("download", "sm")} Exportar',
+                data=csv,
+                file_name=f"documentos_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="export_docs"
+            )
     if docs:
         recent_docs = pd.DataFrame(docs[:5])
         display_cols = ["Archivo", "Versión", "Fecha", "Estado"]
@@ -971,7 +1790,7 @@ def view_dashboard_admin():
     st.divider()
     
     # --- RESUMEN DEL DÍA ---
-    st.subheader("📅 Resumen del Día")
+    st.markdown(f'<h3>{get_icon("calendar", "md")} Resumen del Día</h3>', unsafe_allow_html=True)
     summary_col1, summary_col2, summary_col3 = st.columns(3)
     
     with summary_col1:
@@ -989,10 +1808,14 @@ def view_dashboard_admin():
     st.divider()
     
     # --- FORMULARIOS PARA INGRESAR INFORMACIÓN ---
-    st.subheader("➕ Gestión de Información del Proyecto")
+    st.markdown(f'<h3>{get_icon("add", "md")} Gestión de Información del Proyecto</h3>', unsafe_allow_html=True)
     
     tab_act, tab_pers, tab_bud, tab_mil, tab_imp = st.tabs([
-        "🏗️ Actividades", "👥 Personal", "💰 Presupuesto", "📅 Hitos", "💡 Mejoras"
+        f"{get_icon('building', 'sm')} Actividades",
+        f"{get_icon('team', 'sm')} Personal",
+        f"{get_icon('money', 'sm')} Presupuesto",
+        f"{get_icon('calendar', 'sm')} Hitos",
+        f"{get_icon('check', 'sm')} Mejoras"
     ])
     
     # TAB: ACTIVIDADES
@@ -1055,19 +1878,23 @@ def view_dashboard_admin():
     
     # TAB: PERSONAL
     with tab_pers:
-        st.write("**Registrar Personal**")
+        st.markdown(f'<h4>{get_icon("user", "sm")} Registrar Personal</h4>', unsafe_allow_html=True)
         with st.form("form_personnel", clear_on_submit=True):
             col1, col2 = st.columns(2)
             with col1:
-                pers_name = st.text_input("Nombre Completo *", placeholder="Ej: Juan Pérez")
-                pers_role = st.selectbox("Rol/Cargo *", ["Albañil", "Carpintero", "Electricista", "Plomero", "Supervisor", "Ingeniero", "Arquitecto", "Otro"])
-                pers_team = st.text_input("Equipo", placeholder="Ej: Equipo Alfa")
+                pers_name = st.text_input("Nombre Completo *", placeholder="Ej: Juan Pérez", help="Nombre completo del trabajador")
+                pers_role = st.selectbox("Rol/Cargo *", ["Albañil", "Carpintero", "Electricista", "Plomero", "Supervisor", "Ingeniero", "Arquitecto", "Otro"], help="Cargo o especialidad")
+                pers_team = st.text_input("Equipo", placeholder="Ej: Equipo Alfa", help="Equipo o cuadrilla asignada")
             with col2:
-                pers_phone = st.text_input("Teléfono", placeholder="+56 9 1234 5678")
-                pers_email = st.text_input("Email")
-                pers_status = st.selectbox("Estado", ["Activo", "Inactivo", "Vacaciones"])
+                pers_phone = st.text_input("Teléfono", placeholder="+56 9 1234 5678", help="Número de contacto")
+                pers_email = st.text_input("Email", placeholder="juan.perez@empresa.cl", help="Correo electrónico")
+                pers_status = st.selectbox("Estado", ["Activo", "Inactivo", "Vacaciones", "Licencia"], help="Estado actual del trabajador")
             
-            submitted = st.form_submit_button("Registrar Personal", type="primary", use_container_width=True)
+            # Campos adicionales
+            pers_dni = st.text_input("DNI/RUT", placeholder="12.345.678-9", help="Documento de identidad")
+            pers_start_date = st.date_input("Fecha de Ingreso", value=datetime.now().date(), help="Fecha en que comenzó a trabajar")
+            
+            submitted = st.form_submit_button(f'{get_icon("add", "sm")} Registrar Personal', type="primary", use_container_width=True)
             
             if submitted:
                 if pers_name and pers_role:
@@ -1077,22 +1904,43 @@ def view_dashboard_admin():
                         "equipo": pers_team,
                         "telefono": pers_phone,
                         "email": pers_email,
+                        "dni": pers_dni,
+                        "fecha_ingreso": pers_start_date.strftime("%d/%m/%Y"),
                         "estado": pers_status,
                         "created_by": st.session_state.user_info['name']
                     }
                     if dm.add_personnel(personnel_data):
-                        st.success("✅ Personal registrado correctamente")
+                        st.success(f'{get_icon("check", "sm")} Personal registrado correctamente')
                         st.rerun()
                 else:
-                    st.error("⚠️ Completa los campos obligatorios (*)")
+                    st.error(f'{get_icon("alert", "sm")} Completa los campos obligatorios (*)')
         
         st.divider()
-        st.write("**Personal Registrado**")
+        
+        # Sección de personal registrado con opción de descarga
+        col_header, col_export = st.columns([3, 1])
+        with col_header:
+            st.markdown(f'<h4>{get_icon("team", "sm")} Personal Registrado</h4>', unsafe_allow_html=True)
+        with col_export:
+            personnel = dm.get_personnel()
+            if personnel:
+                pers_df = pd.DataFrame(personnel)
+                if not pers_df.empty:
+                    csv = pers_df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label=f'{get_icon("download", "sm")} Exportar',
+                        data=csv,
+                        file_name=f"personal_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        key="export_personnel"
+                    )
+        
         personnel = dm.get_personnel()
         if personnel:
             pers_df = pd.DataFrame(personnel)
             if not pers_df.empty:
-                display_cols = ["nombre", "rol", "equipo", "estado"]
+                display_cols = ["nombre", "rol", "equipo", "estado", "fecha_ingreso"]
                 available_cols = [col for col in display_cols if col in pers_df.columns]
                 if available_cols:
                     st.dataframe(
@@ -1254,10 +2102,13 @@ def view_dashboard_admin():
             st.info("No hay mejoras registradas aún")
 
 def view_docs():
-    st.title("📂 Planos")
+    render_header_with_icon("Planos y Documentos", "documents")
     
     # Subida Dual: Archivo (Escritorio) o Cámara (Móvil)
-    tab1, tab2 = st.tabs(["📤 Subir Archivo", "📸 Escanear Documento"])
+    tab1, tab2 = st.tabs([
+        f"{get_icon('upload', 'sm')} Subir Archivo",
+        f"{get_icon('camera', 'sm')} Escanear Documento"
+    ])
     
     with tab1:
         uploaded_file = st.file_uploader(
@@ -1270,9 +2121,14 @@ def view_docs():
             file_size_mb = len(uploaded_file.getvalue()) / (1024 * 1024)
             st.caption(f"📄 {uploaded_file.name} ({file_size_mb:.2f} MB)")
             
-            if st.button("Guardar Archivo", use_container_width=True, type="primary"):
+            col_upload, col_version = st.columns([2, 1])
+            with col_version:
+                file_version = st.text_input("Versión", value="v1.0", placeholder="v1.0")
+            
+            if st.button(f'{get_icon("upload", "sm")} Guardar Archivo', use_container_width=True, type="primary"):
                 with st.spinner("Subiendo archivo..."):
-                    dm.upload_file(uploaded_file, {"version": "v1.0"})
+                    if dm.upload_file(uploaded_file, {"version": file_version}):
+                        st.success(f'{get_icon("check", "sm")} Archivo guardado correctamente')
              
     with tab2:
         # Cámara nativa del celular
@@ -1292,7 +2148,24 @@ def view_docs():
             else:
                 st.error(message)
             
-    st.subheader("Archivos Recientes")
+    # Sección de archivos con descarga
+    col_files, col_download_files = st.columns([3, 1])
+    with col_files:
+        st.markdown(f'<h3>{get_icon("documents", "sm")} Archivos Recientes</h3>', unsafe_allow_html=True)
+    with col_download_files:
+        docs = dm.get_docs()
+        if docs:
+            df = pd.DataFrame(docs)
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label=f'{get_icon("download", "sm")} Exportar',
+                data=csv,
+                file_name=f"documentos_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="export_documents"
+            )
+    
     docs = dm.get_docs()
     if docs:
         # Limitar a 20 registros para mejor rendimiento en móvil
@@ -1305,7 +2178,7 @@ def view_docs():
         st.info("No hay archivos registrados aún")
 
 def view_qa():
-    st.title("✅ Calidad (QA/QC)")
+    render_header_with_icon("Calidad (QA/QC)", "quality")
     
     # Formulario Mobile-Friendly
     with st.form("qa_form", clear_on_submit=True):
@@ -1320,10 +2193,10 @@ def view_qa():
         )
         
         # Cámara esencial para QA en terreno
-        st.write("📷 Evidencia Fotográfica")
-        photo = st.camera_input("Tomar foto", help="La foto se comprimirá automáticamente")
+        st.markdown(f'<p><strong>{get_icon("camera", "sm")} Evidencia Fotográfica</strong></p>', unsafe_allow_html=True)
+        photo = st.camera_input("Tomar foto", help="La foto se comprimirá automáticamente", label_visibility="collapsed")
         
-        submitted = st.form_submit_button("Guardar Reporte", type="primary", use_container_width=True)
+        submitted = st.form_submit_button(f'{get_icon("check", "sm")} Guardar Reporte', type="primary", use_container_width=True)
         
         if submitted:
             if not location.strip():
@@ -1340,7 +2213,24 @@ def view_qa():
                     }
                     dm.save_inspection(new_inspection, photo)
 
-    st.subheader("Historial")
+    # Historial con descarga
+    col_hist, col_download_hist = st.columns([3, 1])
+    with col_hist:
+        st.markdown(f'<h3>{get_icon("calendar", "sm")} Historial</h3>', unsafe_allow_html=True)
+    with col_download_hist:
+        inspections = dm.get_inspections()
+        if inspections:
+            df = pd.DataFrame(inspections)
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label=f'{get_icon("download", "sm")} Exportar',
+                data=csv,
+                file_name=f"inspecciones_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="export_inspections"
+            )
+    
     inspections = dm.get_inspections()
     if inspections:
         # Limitar a 20 registros
@@ -1353,7 +2243,7 @@ def view_qa():
         st.info("No hay inspecciones registradas aún")
 
 def view_worker():
-    st.markdown("<div class='main-header'>👷 Mi Jornada</div>", unsafe_allow_html=True)
+    render_header_with_icon("Mi Jornada", "user")
     st.write(f"Bienvenido, **{st.session_state.user_info['name']}**")
     
     # --- ESTADO ACTUAL DE LA JORNADA ---
@@ -1389,11 +2279,11 @@ def view_worker():
     st.divider()
     
     # --- BOTONES DE ACCIÓN PRINCIPAL ---
-    st.subheader("📍 Registro de Asistencia")
+    st.markdown(f'<h3>{get_icon("location", "sm")} Registro de Asistencia</h3>', unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("📍 MARCAR ENTRADA", type="primary", use_container_width=True):
+        if st.button(f'{get_icon("location", "sm")} MARCAR ENTRADA', type="primary", use_container_width=True):
             current_time = datetime.now().strftime("%H:%M")
             st.session_state.last_entry = current_time
             st.session_state.entry_date = current_date
@@ -1405,7 +2295,7 @@ def view_worker():
             logger.info(f"Entrada registrada por {st.session_state.user_info['name']} a las {current_time}")
             
     with col2:
-        if st.button("🏠 MARCAR SALIDA", use_container_width=True):
+        if st.button(f'{get_icon("check", "sm")} MARCAR SALIDA', use_container_width=True):
             if 'last_entry' not in st.session_state:
                 st.warning("⚠️ Debes marcar entrada primero")
             else:
@@ -1428,7 +2318,7 @@ def view_worker():
     st.divider()
     
     # --- RESUMEN SEMANAL ---
-    st.subheader("📊 Resumen Semanal")
+    st.markdown(f'<h3>{get_icon("chart", "sm")} Resumen Semanal</h3>', unsafe_allow_html=True)
     
     if 'weekly_hours' not in st.session_state:
         st.session_state.weekly_hours = {
@@ -1461,7 +2351,7 @@ def view_worker():
     st.divider()
     
     # --- TAREAS Y ASIGNACIONES ---
-    st.subheader("📋 Mis Tareas de Hoy")
+    st.markdown(f'<h3>{get_icon("calendar", "sm")} Mis Tareas de Hoy</h3>', unsafe_allow_html=True)
     
     tasks_data = pd.DataFrame({
         'Tarea': [
@@ -1484,7 +2374,7 @@ def view_worker():
     st.divider()
     
     # --- NOTIFICACIONES PERSONALES ---
-    st.subheader("🔔 Notificaciones")
+    st.markdown(f'<h3>{get_icon("alert", "sm")} Notificaciones</h3>', unsafe_allow_html=True)
     
     st.info("📢 **Nueva asignación**: Revisión de enfierradura Torre B - Piso 3")
     st.warning("⏰ **Recordatorio**: Reunión de seguridad a las 15:00")
@@ -1493,13 +2383,13 @@ def view_worker():
     st.divider()
     
     # --- REPORTE DE INCIDENTES ---
-    st.subheader("🚨 Reportar Incidente o Observación")
+    st.markdown(f'<h3>{get_icon("alert", "sm")} Reportar Incidente o Observación</h3>', unsafe_allow_html=True)
     
-    with st.expander("📸 Reportar con Foto", expanded=False):
+    with st.expander(f"{get_icon('camera', 'sm')} Reportar con Foto", expanded=False):
         incident_photo = st.camera_input("Tomar foto del incidente")
         incident_desc = st.text_area("Descripción del incidente", placeholder="Describe qué ocurrió, dónde y cuándo...")
         
-        if st.button("ENVIAR REPORTE", type="primary", use_container_width=True):
+        if st.button(f'{get_icon("check", "sm")} ENVIAR REPORTE', type="primary", use_container_width=True):
             if incident_photo or incident_desc.strip():
                 with st.spinner("Enviando reporte..."):
                     st.error("🚨 Reporte enviado a Prevención de Riesgos")
@@ -1515,12 +2405,12 @@ def view_worker():
                             logger.info(f"Foto de incidente guardada: {incident_path}")
                         except Exception as e:
                             logger.error(f"Error guardando foto de incidente: {e}")
-            else:
+        else:
                 st.warning("⚠️ Toma una foto o escribe una descripción")
     
     # --- INFORMACIÓN DEL TRABAJADOR ---
     st.divider()
-    st.subheader("ℹ️ Mi Información")
+    st.markdown(f'<h3>{get_icon("user", "sm")} Mi Información</h3>', unsafe_allow_html=True)
     
     info_col1, info_col2 = st.columns(2)
     
@@ -1535,11 +2425,11 @@ def view_worker():
         st.write("**Última Asistencia:** " + (st.session_state.get('entry_date', 'N/A')))
 
 def view_client():
-    st.markdown("<div class='main-header'>🏢 Portal del Cliente</div>", unsafe_allow_html=True)
+    render_header_with_icon("Portal del Cliente", "building")
     st.write(f"Bienvenido, **{st.session_state.user_info['name']}**")
     
     # --- KPIs PRINCIPALES PARA CLIENTE ---
-    st.subheader("📊 Resumen del Proyecto")
+    st.markdown(f'<h3>{get_icon("chart", "sm")} Resumen del Proyecto</h3>', unsafe_allow_html=True)
     
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
     
@@ -1569,7 +2459,7 @@ def view_client():
     col_chart1, col_chart2 = st.columns(2)
     
     with col_chart1:
-        st.subheader("📈 Curva de Avance")
+        st.markdown(f'<h3>{get_icon("chart", "sm")} Curva de Avance</h3>', unsafe_allow_html=True)
         progress_data = pd.DataFrame({
             'Mes': ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
             'Planificado': [10, 25, 45, 65, 80, 100],
@@ -1600,7 +2490,7 @@ def view_client():
     st.divider()
     
     # --- ESTADO DE ACTIVIDADES PRINCIPALES ---
-    st.subheader("🏗️ Estado de Actividades")
+    st.markdown(f'<h3>{get_icon("building", "sm")} Estado de Actividades</h3>', unsafe_allow_html=True)
     
     activities = dm.get_activities()
     if activities:
@@ -1635,7 +2525,7 @@ def view_client():
     st.divider()
     
     # --- GALERÍA DE FOTOS ---
-    st.subheader("📸 Galería de Avances")
+    st.markdown(f'<h3>{get_icon("camera", "sm")} Galería de Avances</h3>', unsafe_allow_html=True)
     
     gallery_col1, gallery_col2, gallery_col3 = st.columns(3)
     
@@ -1657,7 +2547,7 @@ def view_client():
     st.divider()
     
     # --- SOLICITUDES Y CAMBIOS ---
-    st.subheader("📝 Mis Solicitudes y Cambios")
+    st.markdown(f'<h3>{get_icon("documents", "sm")} Mis Solicitudes y Cambios</h3>', unsafe_allow_html=True)
     
     requests_df = pd.DataFrame({
         'Solicitud': [
@@ -1678,13 +2568,13 @@ def view_client():
         height=200
     )
     
-    if st.button("➕ Nueva Solicitud", use_container_width=True):
-        st.info("💡 Usa el chat para enviar nuevas solicitudes o contacta directamente al equipo")
+    if st.button(f'{get_icon("add", "sm")} Nueva Solicitud', use_container_width=True):
+        st.info(f'{get_icon("chat", "sm")} Usa el chat para enviar nuevas solicitudes o contacta directamente al equipo')
     
     st.divider()
     
     # --- HITOS Y CALENDARIO ---
-    st.subheader("📅 Próximos Hitos Importantes")
+    st.markdown(f'<h3>{get_icon("calendar", "sm")} Próximos Hitos Importantes</h3>', unsafe_allow_html=True)
     
     milestones = dm.get_milestones()
     if milestones:
@@ -1707,7 +2597,7 @@ def view_client():
     st.divider()
     
     # --- MEJORAS Y SUGERENCIAS ---
-    st.subheader("💡 Mejoras y Optimizaciones del Proyecto")
+    st.markdown(f'<h3>{get_icon("check", "sm")} Mejoras y Optimizaciones del Proyecto</h3>', unsafe_allow_html=True)
     
     improvements = dm.get_improvements()
     if improvements:
@@ -1730,7 +2620,7 @@ def view_client():
     st.divider()
     
     # --- DOCUMENTOS RELEVANTES ---
-    st.subheader("📂 Documentos Recientes")
+    st.markdown(f'<h3>{get_icon("documents", "sm")} Documentos Recientes</h3>', unsafe_allow_html=True)
     
     docs = dm.get_docs()
     if docs:
@@ -1748,7 +2638,7 @@ def view_client():
     st.divider()
     
     # --- RESUMEN Y CONTACTO ---
-    st.subheader("ℹ️ Información del Proyecto")
+    st.markdown(f'<h3>{get_icon("building", "sm")} Información del Proyecto</h3>', unsafe_allow_html=True)
     
     info_col1, info_col2 = st.columns(2)
     
@@ -1764,10 +2654,93 @@ def view_client():
         st.write("**Presupuesto Total:** $9,500,000")
         st.write("**Email Contacto:** obra@constructora.cl")
     
-    st.info("💬 Para consultas urgentes, utiliza el chat o contacta directamente al equipo de obra")
+    st.info(f'{get_icon("chat", "sm")} Para consultas urgentes, utiliza el chat o contacta directamente al equipo de obra')
+
+def view_projects():
+    """Vista para gestionar proyectos"""
+    render_header_with_icon("Gestión de Proyectos", "project")
+    
+    # Mostrar proyecto actual
+    current_project_id = dm.get_current_project_id()
+    if current_project_id:
+        current_project = dm.get_project(current_project_id)
+        if current_project:
+            st.info(f'{get_icon("building", "sm")} **Proyecto Actual:** {current_project.get("name", "Sin nombre")}')
+    
+    st.divider()
+    
+    # Tabs para crear y gestionar proyectos
+    tab_create, tab_list = st.tabs([
+        f"{get_icon('add', 'sm')} Crear Proyecto",
+        f"{get_icon('project', 'sm')} Mis Proyectos"
+    ])
+    
+    with tab_create:
+        st.markdown("### Crear Nuevo Proyecto")
+        with st.form("form_create_project", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                proj_name = st.text_input("Nombre del Proyecto *", placeholder="Ej: Edificio Residencial Altos del Parque")
+                proj_location = st.text_input("Ubicación", placeholder="Ej: Av. Principal 1234")
+                proj_start = st.date_input("Fecha de Inicio", value=datetime.now().date())
+            with col2:
+                proj_budget = st.number_input("Presupuesto Total ($)", min_value=0.0, value=0.0, step=1000.0)
+                proj_status = st.selectbox("Estado", ["Activo", "En Planificación", "Pausado", "Completado"])
+            
+            proj_description = st.text_area("Descripción", placeholder="Descripción del proyecto...", height=100)
+            
+            submitted = st.form_submit_button(f'{get_icon("add", "sm")} Crear Proyecto', type="primary", use_container_width=True)
+            
+            if submitted:
+                if proj_name:
+                    project_id = dm.create_project(
+                        project_name=proj_name,
+                        description=proj_description,
+                        location=proj_location,
+                        start_date=proj_start,
+                        budget_total=proj_budget
+                    )
+                    if project_id:
+                        st.success(f'{get_icon("check", "sm")} Proyecto "{proj_name}" creado correctamente')
+                        dm.set_current_project(project_id)
+                        st.rerun()
+                else:
+                    st.error(f'{get_icon("alert", "sm")} El nombre del proyecto es obligatorio')
+    
+    with tab_list:
+        st.markdown("### Lista de Proyectos")
+        projects = dm.get_projects()
+        
+        if projects:
+            for project in projects:
+                is_current = project.get("id") == current_project_id
+                status_color = {
+                    "Activo": "🟢",
+                    "En Planificación": "🟡",
+                    "Pausado": "🟠",
+                    "Completado": "✅"
+                }.get(project.get("status", "Activo"), "🟢")
+                
+                with st.expander(f"{status_color} {project.get('name', 'Sin nombre')} - {project.get('status', 'Activo')} {'(Actual)' if is_current else ''}"):
+                    col_info, col_actions = st.columns([3, 1])
+                    with col_info:
+                        st.write(f"**Ubicación:** {project.get('location', 'N/A')}")
+                        st.write(f"**Fecha Inicio:** {project.get('start_date', 'N/A')}")
+                        st.write(f"**Presupuesto:** ${project.get('budget_total', 0):,.0f}")
+                        if project.get('description'):
+                            st.write(f"**Descripción:** {project.get('description')}")
+                    
+                    with col_actions:
+                        if not is_current:
+                            if st.button(f"{get_icon('check', 'sm')} Seleccionar", key=f"select_{project['id']}", use_container_width=True):
+                                dm.set_current_project(project['id'])
+                                st.success(f"Proyecto '{project.get('name')}' seleccionado")
+                                st.rerun()
+        else:
+            st.info("No hay proyectos creados. Crea tu primer proyecto en la pestaña 'Crear Proyecto'")
 
 def view_chat():
-    st.title("💬 Chat")
+    render_header_with_icon("Chat", "chat")
     
     # Contenedor de chat con altura fija para móvil
     chat_container = st.container()
@@ -1799,10 +2772,62 @@ else:
         logout()
     else:
         with st.sidebar:
+            # Logo de la empresa en el sidebar
+            try:
+                logo_path = "logogyh.jpeg"
+                if Path(logo_path).exists():
+                    logo_base64 = base64.b64encode(Path(logo_path).read_bytes()).decode()
+                    st.markdown(f"""
+                    <div style='text-align: center; padding: 1rem 0;'>
+                        <img src="data:image/jpeg;base64,{logo_base64}" alt="G&H Constructores" style="max-height: 60px; width: auto;" />
+                    </div>
+                    """, unsafe_allow_html=True)
+            except Exception as e:
+                logger.warning(f"No se pudo cargar el logo en sidebar: {e}")
+            
             st.write(f"👤 **{st.session_state.user_info['name']}**")
             st.caption(f"Rol: {st.session_state.user_info['role']}")
             
+            # Selector de Proyecto (solo para ADMIN)
+            role = st.session_state.user_info['role']
+            if role == "ADMIN":
+                st.divider()
+                st.markdown("### Proyecto Actual")
+                projects = dm.get_projects()
+                current_project_id = dm.get_current_project_id()
+                
+                if projects:
+                    project_names = [f"{p.get('name', 'Sin nombre')} ({p.get('status', 'Activo')})" for p in projects]
+                    project_ids = [p.get('id') for p in projects]
+                    
+                    try:
+                        current_index = project_ids.index(current_project_id) if current_project_id in project_ids else 0
+                    except ValueError:
+                        current_index = 0
+                    
+                    selected_project_idx = st.selectbox(
+                        "Seleccionar Proyecto:",
+                        range(len(project_names)),
+                        index=current_index,
+                        format_func=lambda x: project_names[x],
+                        key="project_selector"
+                    )
+                    
+                    if project_ids[selected_project_idx] != current_project_id:
+                        dm.set_current_project(project_ids[selected_project_idx])
+                        st.rerun()
+                    
+                    # Mostrar info del proyecto actual
+                    if current_project_id:
+                        current_project = dm.get_project(current_project_id)
+                        if current_project:
+                            st.caption(f"📍 {current_project.get('location', 'N/A')}")
+                            st.caption(f"📅 {current_project.get('start_date', 'N/A')}")
+                else:
+                    st.info("No hay proyectos. Crea uno en 'Proyectos'")
+            
             # Mostrar tiempo de sesión restante
+            st.divider()
             if 'last_activity' in st.session_state:
                 elapsed = datetime.now() - st.session_state.last_activity
                 remaining = SESSION_TIMEOUT_MINUTES - (elapsed.total_seconds() / 60)
@@ -1813,11 +2838,10 @@ else:
                 logout()
             st.divider()
             
-            role = st.session_state.user_info['role']
             menu_options = []
             
             if role == "ADMIN":
-                menu_options = ["Dashboard", "Documentos", "Calidad", "Chat"]
+                menu_options = ["Dashboard", "Proyectos", "Documentos", "Calidad", "Chat"]
             elif role == "WORKER":
                 menu_options = ["Mi Jornada", "Chat"]
             elif role == "CLIENT":
@@ -1828,6 +2852,7 @@ else:
         # Renderizar vista seleccionada
         if role == "ADMIN":
             if selected_page == "Dashboard": view_dashboard_admin()
+            elif selected_page == "Proyectos": view_projects()
             elif selected_page == "Documentos": view_docs()
             elif selected_page == "Calidad": view_qa()
             elif selected_page == "Chat": view_chat()
