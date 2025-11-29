@@ -1429,26 +1429,45 @@ if 'last_activity' not in st.session_state:
     st.session_state.last_activity = datetime.now()
 
 def login():
-    # Mostrar logo de la empresa
+    # Mostrar logo de la empresa con mejor presentación
     try:
         logo_path = "logogyh.jpeg"
         if Path(logo_path).exists():
-            st.markdown("""
-            <div class="company-logo">
-                <img src="data:image/jpeg;base64,{}" alt="G&H Constructores" />
+            logo_base64 = base64.b64encode(Path(logo_path).read_bytes()).decode()
+            st.markdown(f"""
+            <div style='text-align: center; padding: 2rem 0; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border-radius: 16px; margin-bottom: 2rem;'>
+                <img src="data:image/jpeg;base64,{logo_base64}" alt="G&H Constructores" style="max-height: 100px; width: auto; margin-bottom: 1rem;" />
+                <div style='font-size: 2rem; font-weight: 700; color: #1e40af; letter-spacing: 0.1em; margin-top: 0.5rem;'>
+                    G&H CONSTRUCTORES
+                </div>
+                <div style='font-size: 1rem; color: #64748b; margin-top: 0.5rem;'>
+                    Sistema de Gestión de Obra
+                </div>
             </div>
-            """.format(
-                base64.b64encode(Path(logo_path).read_bytes()).decode()
-            ), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style='text-align: center; padding: 2rem 0; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border-radius: 16px; margin-bottom: 2rem;'>
+                <div style='font-size: 2.5rem; font-weight: 700; color: #1e40af; letter-spacing: 0.1em;'>
+                    G&H CONSTRUCTORES
+                </div>
+                <div style='font-size: 1.1rem; color: #64748b; margin-top: 0.5rem;'>
+                    Sistema de Gestión de Obra
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
     except Exception as e:
         logger.warning(f"No se pudo cargar el logo: {e}")
-    
-    st.markdown("""
-    <div class="company-header">
-        <div class="company-name">G&H CONSTRUCTORES</div>
-        <div class="company-tagline">Sistema de Gestión de Obra</div>
-    </div>
-    """, unsafe_allow_html=True)
+        st.markdown("""
+        <div style='text-align: center; padding: 2rem 0; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border-radius: 16px; margin-bottom: 2rem;'>
+            <div style='font-size: 2.5rem; font-weight: 700; color: #1e40af; letter-spacing: 0.1em;'>
+                G&H CONSTRUCTORES
+            </div>
+            <div style='font-size: 1.1rem; color: #64748b; margin-top: 0.5rem;'>
+                Sistema de Gestión de Obra
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Usar columnas para centrar en escritorio, en móvil ocupará ancho completo
     col1, col2, col3 = st.columns([1, 6, 1])
@@ -1852,11 +1871,13 @@ def view_dashboard_admin():
                         "notas": act_notes,
                         "created_by": st.session_state.user_info['name']
                     }
-                    if dm.add_activity(activity_data):
-                        st.success("✅ Actividad agregada correctamente")
-                        st.rerun()
+                    with st.spinner("Guardando actividad..."):
+                        if dm.add_activity(activity_data):
+                            st.success(f'{get_icon("check", "sm")} **Actividad "{act_name}" agregada correctamente**')
+                            time.sleep(0.5)
+                            st.rerun()
                 else:
-                    st.error("⚠️ Completa los campos obligatorios (*)")
+                    st.error(f'{get_icon("alert", "sm")} **Completa los campos obligatorios (*)**')
         
         st.divider()
         st.write("**Actividades Registradas**")
@@ -1898,22 +1919,24 @@ def view_dashboard_admin():
             
             if submitted:
                 if pers_name and pers_role:
-                    personnel_data = {
-                        "nombre": pers_name,
-                        "rol": pers_role,
-                        "equipo": pers_team,
-                        "telefono": pers_phone,
-                        "email": pers_email,
-                        "dni": pers_dni,
-                        "fecha_ingreso": pers_start_date.strftime("%d/%m/%Y"),
-                        "estado": pers_status,
-                        "created_by": st.session_state.user_info['name']
-                    }
-                    if dm.add_personnel(personnel_data):
-                        st.success(f'{get_icon("check", "sm")} Personal registrado correctamente')
-                        st.rerun()
+                    with st.spinner("Registrando personal..."):
+                        personnel_data = {
+                            "nombre": pers_name,
+                            "rol": pers_role,
+                            "equipo": pers_team,
+                            "telefono": pers_phone,
+                            "email": pers_email,
+                            "dni": pers_dni,
+                            "fecha_ingreso": pers_start_date.strftime("%d/%m/%Y"),
+                            "estado": pers_status,
+                            "created_by": st.session_state.user_info['name']
+                        }
+                        if dm.add_personnel(personnel_data):
+                            st.success(f'{get_icon("check", "sm")} **Personal "{pers_name}" registrado correctamente**')
+                            time.sleep(0.5)
+                            st.rerun()
                 else:
-                    st.error(f'{get_icon("alert", "sm")} Completa los campos obligatorios (*)')
+                    st.error(f'{get_icon("alert", "sm")} **Completa los campos obligatorios (*)**')
         
         st.divider()
         
@@ -1970,11 +1993,13 @@ def view_dashboard_admin():
             
             if submitted:
                 if budget_amount > 0:
-                    if dm.update_budget(budget_category, budget_amount):
-                        st.success(f"✅ Gasto de ${budget_amount:,.0f} registrado en {budget_category}")
-                        st.rerun()
+                    with st.spinner("Registrando gasto..."):
+                        if dm.update_budget(budget_category, budget_amount):
+                            st.success(f'{get_icon("check", "sm")} **Gasto de ${budget_amount:,.0f} registrado en {budget_category}**')
+                            time.sleep(0.5)
+                            st.rerun()
                 else:
-                    st.error("⚠️ Ingresa un monto válido")
+                    st.error(f'{get_icon("alert", "sm")} **Ingresa un monto válido mayor a cero**')
         
         st.divider()
         st.write("**Desglose por Categoría**")
@@ -2013,11 +2038,13 @@ def view_dashboard_admin():
                         "estado": mil_status,
                         "created_by": st.session_state.user_info['name']
                     }
-                    if dm.add_milestone(milestone_data):
-                        st.success("✅ Hito agregado correctamente")
-                        st.rerun()
+                    with st.spinner("Agregando hito..."):
+                        if dm.add_milestone(milestone_data):
+                            st.success(f'{get_icon("check", "sm")} **Hito "{mil_name}" agregado correctamente**')
+                            time.sleep(0.5)
+                            st.rerun()
                 else:
-                    st.error("⚠️ Completa el nombre del hito")
+                    st.error(f'{get_icon("alert", "sm")} **Completa el nombre del hito**')
         
         st.divider()
         st.write("**Hitos del Proyecto**")
@@ -2051,20 +2078,22 @@ def view_dashboard_admin():
             
             if submitted:
                 if imp_title and imp_description:
-                    improvement_data = {
-                        "titulo": imp_title,
-                        "categoria": imp_category,
-                        "descripcion": imp_description,
-                        "prioridad": imp_priority,
-                        "impacto_estimado": imp_estimated_impact,
-                        "autor": st.session_state.user_info['name'],
-                        "rol_autor": st.session_state.user_info['role']
-                    }
-                    if dm.add_improvement(improvement_data):
-                        st.success("✅ Sugerencia de mejora enviada correctamente")
-                        st.rerun()
+                    with st.spinner("Enviando sugerencia..."):
+                        improvement_data = {
+                            "titulo": imp_title,
+                            "categoria": imp_category,
+                            "descripcion": imp_description,
+                            "prioridad": imp_priority,
+                            "impacto_estimado": imp_estimated_impact,
+                            "autor": st.session_state.user_info['name'],
+                            "rol_autor": st.session_state.user_info['role']
+                        }
+                        if dm.add_improvement(improvement_data):
+                            st.success(f'{get_icon("check", "sm")} **Sugerencia de mejora "{imp_title}" enviada correctamente**')
+                            time.sleep(0.5)
+                            st.rerun()
                 else:
-                    st.error("⚠️ Completa los campos obligatorios (*)")
+                    st.error(f'{get_icon("alert", "sm")} **Completa los campos obligatorios (*)**')
         
         st.divider()
         st.write("**Mejoras y Sugerencias**")
@@ -2089,14 +2118,16 @@ def view_dashboard_admin():
                     
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button(f"Marcar como Aprobada", key=f"approve_{imp['id']}"):
+                        if st.button(f"{get_icon('check', 'sm')} Aprobar", key=f"approve_{imp['id']}", use_container_width=True):
                             if dm.update_improvement_status(imp['id'], "Aprobada"):
-                                st.success("Mejora aprobada")
+                                st.success(f'{get_icon("check", "sm")} **Mejora aprobada**')
+                                time.sleep(0.5)
                                 st.rerun()
                     with col2:
-                        if st.button(f"Marcar como Implementada", key=f"implement_{imp['id']}"):
+                        if st.button(f"{get_icon('check', 'sm')} Implementar", key=f"implement_{imp['id']}", use_container_width=True):
                             if dm.update_improvement_status(imp['id'], "Implementada"):
-                                st.success("Mejora marcada como implementada")
+                                st.success(f'{get_icon("check", "sm")} **Mejora marcada como implementada**')
+                                time.sleep(0.5)
                                 st.rerun()
         else:
             st.info("No hay mejoras registradas aún")
@@ -2128,7 +2159,9 @@ def view_docs():
             if st.button(f'{get_icon("upload", "sm")} Guardar Archivo', use_container_width=True, type="primary"):
                 with st.spinner("Subiendo archivo..."):
                     if dm.upload_file(uploaded_file, {"version": file_version}):
-                        st.success(f'{get_icon("check", "sm")} Archivo guardado correctamente')
+                        st.success(f'{get_icon("check", "sm")} **Archivo "{uploaded_file.name}" guardado correctamente**')
+                        time.sleep(0.5)
+                        st.rerun()
              
     with tab2:
         # Cámara nativa del celular
@@ -2212,6 +2245,9 @@ def view_qa():
                         "Ubicacion": location
                     }
                     dm.save_inspection(new_inspection, photo)
+                    st.success(f'{get_icon("check", "sm")} **Inspección guardada correctamente**')
+                    time.sleep(0.5)
+                    st.rerun()
 
     # Historial con descarga
     col_hist, col_download_hist = st.columns([3, 1])
@@ -2405,8 +2441,8 @@ def view_worker():
                             logger.info(f"Foto de incidente guardada: {incident_path}")
                         except Exception as e:
                             logger.error(f"Error guardando foto de incidente: {e}")
-        else:
-                st.warning("⚠️ Toma una foto o escribe una descripción")
+            else:
+                st.warning("⚠️ **Toma una foto o escribe una descripción del incidente**")
     
     # --- INFORMACIÓN DEL TRABAJADOR ---
     st.divider()
@@ -2426,6 +2462,23 @@ def view_worker():
 
 def view_client():
     render_header_with_icon("Portal del Cliente", "building")
+    
+    # Mostrar información del proyecto actual
+    current_project_id = dm.get_current_project_id()
+    if current_project_id:
+        current_project = dm.get_project(current_project_id)
+        if current_project:
+            st.markdown(f"""
+            <div style='background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;'>
+                <div style='font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;'>
+                    {get_icon("building", "sm")} {current_project.get("name", "Sin nombre")}
+                </div>
+                <div style='font-size: 0.9rem; opacity: 0.9;'>
+                    📍 {current_project.get("location", "N/A")} | 📅 Inicio: {current_project.get("start_date", "N/A")}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    
     st.write(f"Bienvenido, **{st.session_state.user_info['name']}**")
     
     # --- KPIs PRINCIPALES PARA CLIENTE ---
@@ -2660,12 +2713,26 @@ def view_projects():
     """Vista para gestionar proyectos"""
     render_header_with_icon("Gestión de Proyectos", "project")
     
-    # Mostrar proyecto actual
+    # Mostrar proyecto actual con mejor presentación
     current_project_id = dm.get_current_project_id()
     if current_project_id:
         current_project = dm.get_project(current_project_id)
         if current_project:
-            st.info(f'{get_icon("building", "sm")} **Proyecto Actual:** {current_project.get("name", "Sin nombre")}')
+            st.markdown(f"""
+            <div style='background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;'>
+                <div style='font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;'>
+                    {get_icon("building", "sm")} Proyecto Actual
+                </div>
+                <div style='font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;'>
+                    {current_project.get("name", "Sin nombre")}
+                </div>
+                <div style='font-size: 0.9rem; opacity: 0.9;'>
+                    📍 {current_project.get("location", "N/A")} | 📅 {current_project.get("start_date", "N/A")} | 💰 ${current_project.get("budget_total", 0):,.0f}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info(f'{get_icon("alert", "sm")} **No hay proyecto seleccionado.** Crea tu primer proyecto a continuación.')
     
     st.divider()
     
