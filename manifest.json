@@ -1,7 +1,7 @@
 {
-  "name": "ConTech Mobile - Gestión de Obra",
-  "short_name": "ConTech",
-  "description": "Aplicación móvil para gestión de obras de construcción",
+  "name": "G&H Constructores - Gestión de Obra",
+  "short_name": "G&H Constructores",
+  "description": "Sistema de gestión de obra para G&H Constructores - Gestión de múltiples proyectos",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

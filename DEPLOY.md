@@ -1,6 +1,6 @@
-# 🚀 Guía de Despliegue - ConTech Mobile
+# 🚀 Guía de Despliegue - G&H Constructores
 
-Esta guía te ayudará a desplegar ConTech Mobile para que sea accesible desde cualquier móvil.
+Esta guía te ayudará a desplegar el Sistema de Gestión de Obra de G&H Constructores para que sea accesible desde cualquier móvil.
 
 ## 📱 Opción 1: Desplegar en Streamlit Cloud (RECOMENDADO - GRATIS)
 
@@ -10,7 +10,7 @@ Esta guía te ayudará a desplegar ConTech Mobile para que sea accesible desde c
    ```bash
    git init
    git add .
-   git commit -m "Initial commit - ConTech Mobile"
+   git commit -m "Initial commit - G&H Constructores"
    git branch -M main
    git remote add origin https://github.com/TU_USUARIO/contech-mobile.git
    git push -u origin main
