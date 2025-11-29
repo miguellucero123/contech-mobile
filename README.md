@@ -227,5 +227,16 @@ Para más información:
 
 ---
 
-**Desarrollado con ❤️ para la industria de la construcción**
+## 🆕 Novedades v2.0
+
+- ✨ **Sistema de múltiples proyectos** - Gestiona varios proyectos simultáneamente
+- 🎨 **Interfaz profesional mejorada** - Sistema de temas SCSS, iconos SVG profesionales
+- 🏢 **Branding G&H Constructores** - Logo y nombre de empresa integrados
+- 📊 **Dashboards mejorados** - Información más detallada y profesional
+- 💬 **Feedback mejorado** - Mensajes de éxito, validaciones y spinners
+- 📱 **UX optimizada** - Mejor experiencia en móviles y escritorio
+
+---
+
+**Desarrollado con ❤️ para G&H Constructores**
 
