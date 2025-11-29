@@ -1,8 +1,8 @@
-# 🏗️ ConTech Mobile - Aplicación Móvil de Gestión de Obra
+# 🏗️ G&H Constructores - Sistema de Gestión de Obra
 
 Aplicación web progresiva (PWA) desarrollada en Python con Streamlit, diseñada para digitalizar la gestión de obras de construcción. **Se puede instalar en cualquier móvil como una app nativa.**
 
-![ConTech Mobile](https://img.shields.io/badge/ConTech-Mobile-blue)
+![G&H Constructores](https://img.shields.io/badge/G%26H-Constructores-blue)
 ![Python](https://img.shields.io/badge/Python-3.8+-green)
 ![Streamlit](https://img.shields.io/badge/Streamlit-Latest-red)
 
@@ -10,12 +10,14 @@ Aplicación web progresiva (PWA) desarrollada en Python con Streamlit, diseñada
 
 - ✅ **Instalable en móviles** - Funciona como app nativa (PWA)
 - 👥 **Roles diferenciados** - Admin, Trabajador y Cliente
-- 📊 **Dashboards profesionales** - Métricas, gráficos y visualizaciones
+- 📊 **Dashboards profesionales** - Métricas, gráficos y visualizaciones detalladas
+- 🏗️ **Gestión de múltiples proyectos** - Trabaja con varios proyectos simultáneamente
 - 📂 **Gestión documental** - Subida de planos y documentos
 - ✅ **Control de calidad** - Inspecciones con fotos
-- 💰 **Gestión de presupuesto** - Seguimiento en tiempo real
+- 💰 **Gestión de presupuesto** - Seguimiento en tiempo real por proyecto
 - 💡 **Sistema de mejoras** - Sugerencias y optimizaciones
-- ☁️ **Base de datos local/cloud** - Persistencia de datos
+- 🎨 **Interfaz profesional** - Diseño moderno con sistema de temas SCSS
+- ☁️ **Base de datos local/cloud** - Persistencia de datos por proyecto
 
 ## 🚀 Instalación Rápida
 
@@ -67,13 +69,15 @@ La app estará disponible en: `http://localhost:8501`
 ## 🎯 Funcionalidades por Rol
 
 ### 👔 Jefe de Obra (Admin)
-- Dashboard ejecutivo con KPIs
+- Dashboard ejecutivo con KPIs detallados
+- **Gestión de múltiples proyectos** - Crear y cambiar entre proyectos
 - Gestión de actividades del proyecto
 - Registro de personal
-- Control de presupuesto
+- Control de presupuesto por proyecto
 - Creación de hitos
 - Gestión de mejoras y sugerencias
 - Visualización de inspecciones
+- Formularios integrados para ingreso de datos
 
 ### 👷 Trabajador
 - Dashboard personal
@@ -102,16 +106,17 @@ La app estará disponible en: `http://localhost:8501`
 ## 📦 Estructura del Proyecto
 
 ```
-contech-mobile/
+App_gyh/
 ├── construction_app.py      # Aplicación principal
+├── logogyh.jpeg            # Logo de G&H Constructores
 ├── requirements.txt          # Dependencias
 ├── manifest.json             # Configuración PWA
 ├── service-worker.js         # Service Worker para offline
 ├── .streamlit/
 │   ├── config.toml          # Configuración Streamlit
-│   └── static/             # Archivos estáticos
+│   └── static/             # Archivos estáticos (icons.svg, manifest.json, service-worker.js)
 ├── data/
-│   └── database.json        # Base de datos local (se crea automáticamente)
+│   └── database.json        # Base de datos local (se crea automáticamente, almacena múltiples proyectos)
 ├── uploads/
 │   ├── docs/               # Documentos subidos
 │   └── photos/             # Fotos de inspecciones
@@ -139,13 +144,14 @@ Si quieres usar GCP en lugar de almacenamiento local:
 
 ## 📊 Base de Datos
 
-La aplicación usa una base de datos JSON local (`data/database.json`) que se crea automáticamente. Los datos incluyen:
+La aplicación usa una base de datos JSON local (`data/database.json`) que se crea automáticamente. **Cada proyecto tiene sus propios datos independientes:**
 
-- **Actividades**: Tareas y actividades del proyecto
-- **Personal**: Registro de trabajadores
-- **Presupuesto**: Control de gastos por categoría
+- **Proyectos**: Información de múltiples proyectos (nombre, ubicación, presupuesto, fechas)
+- **Actividades**: Tareas y actividades por proyecto
+- **Personal**: Registro de trabajadores por proyecto
+- **Presupuesto**: Control de gastos por categoría y proyecto
 - **Hitos**: Eventos importantes del proyecto
-- **Mejoras**: Sugerencias y optimizaciones
+- **Mejoras**: Sugerencias y optimizaciones por proyecto
 - **Alertas**: Notificaciones del sistema
 
 ## 🚀 Despliegue
