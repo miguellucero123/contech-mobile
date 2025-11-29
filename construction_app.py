@@ -1547,8 +1547,10 @@ class DataManager:
                 return True
         return False
     
-    def create_project(self, project_name, description="", location="", start_date=None, budget_total=0):
-        """Crea un nuevo proyecto"""
+    def create_project(self, project_name, description="", location="", start_date=None, budget_total=0, 
+                      total_area_m2=0, built_area_m2=0, economic_range="", construction_type="", 
+                      floors=0, units=0, parking_spaces=0, construction_conditions=""):
+        """Crea un nuevo proyecto con información profesional detallada"""
         db = self.get_db()
         projects = db.get("projects", [])
         
@@ -1561,6 +1563,15 @@ class DataManager:
             "created_at": datetime.now().isoformat(),
             "status": "Activo",
             "budget_total": budget_total,
+            # Información profesional adicional
+            "total_area_m2": total_area_m2,
+            "built_area_m2": built_area_m2,
+            "economic_range": economic_range,
+            "construction_type": construction_type,
+            "floors": floors,
+            "units": units,
+            "parking_spaces": parking_spaces,
+            "construction_conditions": construction_conditions,
             "data": get_default_project_data()
         }
         
@@ -2182,11 +2193,11 @@ def view_dashboard_admin():
     st.markdown(f'<h3>{get_icon("add", "md")} Gestión de Información del Proyecto</h3>', unsafe_allow_html=True)
     
     tab_act, tab_pers, tab_bud, tab_mil, tab_imp = st.tabs([
-        f"{get_icon('building', 'sm')} Actividades",
-        f"{get_icon('team', 'sm')} Personal",
-        f"{get_icon('money', 'sm')} Presupuesto",
-        f"{get_icon('calendar', 'sm')} Hitos",
-        f"{get_icon('check', 'sm')} Mejoras"
+        f"{get_icon_symbol('building')} Actividades",
+        f"{get_icon_symbol('team')} Personal",
+        f"{get_icon_symbol('money')} Presupuesto",
+        f"{get_icon_symbol('calendar')} Hitos",
+        f"{get_icon_symbol('check')} Mejoras"
     ])
     
     # TAB: ACTIVIDADES
@@ -2496,8 +2507,8 @@ def view_docs():
     
     # Subida Dual: Archivo (Escritorio) o Cámara (Móvil)
     tab1, tab2 = st.tabs([
-        f"{get_icon('upload', 'sm')} Subir Archivo",
-        f"{get_icon('camera', 'sm')} Escanear Documento"
+        f"{get_icon_symbol('upload')} Subir Archivo",
+        f"{get_icon_symbol('camera')} Escanear Documento"
     ])
     
     with tab1:
@@ -3176,35 +3187,84 @@ def view_projects():
     
     with tab_create:
         st.markdown("### Crear Nuevo Proyecto")
+        st.markdown("#### Información Básica")
         with st.form("form_create_project", clear_on_submit=True):
             col1, col2 = st.columns(2)
             with col1:
-                proj_name = st.text_input("Nombre del Proyecto *", placeholder="Ej: Edificio Residencial Altos del Parque")
-                proj_location = st.text_input("Ubicación", placeholder="Ej: Av. Principal 1234")
-                proj_start = st.date_input("Fecha de Inicio", value=datetime.now().date())
+                proj_name = st.text_input("Nombre del Proyecto *", placeholder="Ej: Edificio Residencial Altos del Parque", help="Nombre completo del proyecto")
+                proj_location = st.text_input("Ubicación *", placeholder="Ej: Av. Principal 1234, Santiago", help="Dirección completa del proyecto")
+                proj_start = st.date_input("Fecha de Inicio *", value=datetime.now().date(), help="Fecha planificada de inicio de obra")
+                proj_construction_type = st.selectbox("Tipo de Construcción *", 
+                    ["Residencial", "Comercial", "Industrial", "Mixto", "Infraestructura", "Institucional", "Otro"],
+                    help="Tipo principal de construcción")
             with col2:
-                proj_budget = st.number_input("Presupuesto Total ($)", min_value=0.0, value=0.0, step=1000.0)
-                proj_status = st.selectbox("Estado", ["Activo", "En Planificación", "Pausado", "Completado"])
+                proj_budget = st.number_input("Presupuesto Total ($) *", min_value=0.0, value=0.0, step=1000.0, help="Presupuesto total del proyecto")
+                proj_status = st.selectbox("Estado", ["Activo", "En Planificación", "Pausado", "Completado"], help="Estado actual del proyecto")
+                proj_economic_range = st.selectbox("Rango Económico *",
+                    ["Económico", "Medio", "Medio-Alto", "Alto", "Premium"],
+                    help="Rango económico del proyecto")
             
-            proj_description = st.text_area("Descripción", placeholder="Descripción del proyecto...", height=100)
+            st.divider()
+            st.markdown("#### Dimensiones y Áreas")
+            col_area1, col_area2, col_area3 = st.columns(3)
+            with col_area1:
+                proj_total_area = st.number_input("Área Total (m²) *", min_value=0.0, value=0.0, step=1.0, help="Área total del terreno en metros cuadrados")
+            with col_area2:
+                proj_built_area = st.number_input("Área Construida (m²) *", min_value=0.0, value=0.0, step=1.0, help="Área total construida en metros cuadrados")
+            with col_area3:
+                proj_floors = st.number_input("Número de Pisos *", min_value=0, value=0, step=1, help="Cantidad de pisos del proyecto")
+            
+            col_units, col_parking = st.columns(2)
+            with col_units:
+                proj_units = st.number_input("Unidades/Viviendas", min_value=0, value=0, step=1, help="Número de unidades o viviendas (si aplica)")
+            with col_parking:
+                proj_parking = st.number_input("Estacionamientos", min_value=0, value=0, step=1, help="Número de estacionamientos")
+            
+            st.divider()
+            st.markdown("#### Condiciones de Construcción")
+            proj_conditions = st.text_area("Condiciones y Especificaciones Técnicas *", 
+                placeholder="Ej: Estructura de hormigón armado, muros de albañilería, techumbre de tejas, terminaciones estándar...", 
+                height=120,
+                help="Describe las condiciones de construcción, materiales principales, especificaciones técnicas relevantes")
+            
+            proj_description = st.text_area("Descripción General", placeholder="Descripción adicional del proyecto, objetivos, características especiales...", height=100)
+            
+            # Cálculo automático de métricas
+            if proj_total_area > 0 and proj_built_area > 0:
+                building_coefficient = (proj_built_area / proj_total_area * 100) if proj_total_area > 0 else 0
+                cost_per_m2 = (proj_budget / proj_built_area) if proj_built_area > 0 else 0
+                
+                st.info(f"""
+                **Métricas Calculadas:**
+                - Coeficiente de Construcción: {building_coefficient:.1f}%
+                - Costo por m² Construido: ${cost_per_m2:,.0f}
+                """)
             
             submitted = st.form_submit_button(f'{get_icon_symbol("add")} Crear Proyecto', type="primary", use_container_width=True)
             
             if submitted:
-                if proj_name:
+                if proj_name and proj_location and proj_total_area > 0 and proj_built_area > 0:
                     project_id = dm.create_project(
                         project_name=proj_name,
                         description=proj_description,
                         location=proj_location,
                         start_date=proj_start,
-                        budget_total=proj_budget
+                        budget_total=proj_budget,
+                        total_area_m2=proj_total_area,
+                        built_area_m2=proj_built_area,
+                        economic_range=proj_economic_range,
+                        construction_type=proj_construction_type,
+                        floors=proj_floors,
+                        units=proj_units,
+                        parking_spaces=proj_parking,
+                        construction_conditions=proj_conditions
                     )
                     if project_id:
                         st.success(f'✅ Proyecto "{proj_name}" creado correctamente')
                         dm.set_current_project(project_id)
                         st.rerun()
                 else:
-                    st.error("⚠️ El nombre del proyecto es obligatorio")
+                    st.error("⚠️ Completa todos los campos obligatorios (*): Nombre, Ubicación, Área Total, Área Construida")
     
     with tab_list:
         st.markdown("### Lista de Proyectos")
@@ -3223,11 +3283,44 @@ def view_projects():
                 with st.expander(f"{status_color} {project.get('name', 'Sin nombre')} - {project.get('status', 'Activo')} {'(Actual)' if is_current else ''}"):
                     col_info, col_actions = st.columns([3, 1])
                     with col_info:
+                        st.markdown("#### Información Básica")
                         st.write(f"**Ubicación:** {project.get('location', 'N/A')}")
                         st.write(f"**Fecha Inicio:** {project.get('start_date', 'N/A')}")
                         st.write(f"**Presupuesto:** ${project.get('budget_total', 0):,.0f}")
+                        st.write(f"**Tipo de Construcción:** {project.get('construction_type', 'N/A')}")
+                        st.write(f"**Rango Económico:** {project.get('economic_range', 'N/A')}")
+                        
+                        st.divider()
+                        st.markdown("#### Dimensiones y Métricas")
+                        total_area = project.get('total_area_m2', 0)
+                        built_area = project.get('built_area_m2', 0)
+                        budget = project.get('budget_total', 0)
+                        
+                        col_metrics1, col_metrics2 = st.columns(2)
+                        with col_metrics1:
+                            st.metric("Área Total", f"{total_area:,.0f} m²")
+                            st.metric("Área Construida", f"{built_area:,.0f} m²")
+                            if total_area > 0:
+                                building_coeff = (built_area / total_area * 100)
+                                st.metric("Coef. Construcción", f"{building_coeff:.1f}%")
+                        with col_metrics2:
+                            st.metric("Pisos", project.get('floors', 0))
+                            st.metric("Unidades", project.get('units', 0))
+                            st.metric("Estacionamientos", project.get('parking_spaces', 0))
+                        
+                        if built_area > 0 and budget > 0:
+                            cost_per_m2 = budget / built_area
+                            st.metric("💰 Costo por m²", f"${cost_per_m2:,.0f}")
+                        
+                        if project.get('construction_conditions'):
+                            st.divider()
+                            st.markdown("#### Condiciones de Construcción")
+                            st.write(project.get('construction_conditions'))
+                        
                         if project.get('description'):
-                            st.write(f"**Descripción:** {project.get('description')}")
+                            st.divider()
+                            st.markdown("#### Descripción")
+                            st.write(project.get('description'))
                     
                     with col_actions:
                         if not is_current:
