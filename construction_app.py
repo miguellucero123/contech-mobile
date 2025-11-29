@@ -1870,9 +1870,9 @@ def view_dashboard_admin():
     if current_project_id:
         current_project = dm.get_project(current_project_id)
         if current_project:
-            st.info(f'{get_icon("building", "sm")} **Proyecto:** {current_project.get("name", "Sin nombre")} | 📍 {current_project.get("location", "N/A")}')
+            st.info(f'🏗️ **Proyecto:** {current_project.get("name", "Sin nombre")} | 📍 {current_project.get("location", "N/A")}')
     else:
-        st.warning(f'{get_icon("alert", "sm")} No hay proyecto seleccionado. Ve a "Proyectos" para crear o seleccionar uno.')
+        st.warning("⚠️ No hay proyecto seleccionado. Ve a \"Proyectos\" para crear o seleccionar uno.")
         return
     
     # --- KPIs PRINCIPALES ---
@@ -2139,7 +2139,7 @@ def view_dashboard_admin():
             docs_df = pd.DataFrame(docs)
             csv = docs_df.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label=f'{get_icon("download", "sm")} Exportar',
+                label=f'{get_icon_symbol("download")} Exportar',
                 data=csv,
                 file_name=f"documentos_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
@@ -2286,11 +2286,11 @@ def view_dashboard_admin():
                             "created_by": st.session_state.user_info['name']
                         }
                         if dm.add_personnel(personnel_data):
-                            st.success(f'{get_icon("check", "sm")} **Personal "{pers_name}" registrado correctamente**')
+                            st.success(f'✅ **Personal "{pers_name}" registrado correctamente**')
                             time.sleep(0.5)
                             st.rerun()
                 else:
-                    st.error(f'{get_icon("alert", "sm")} **Completa los campos obligatorios (*)**')
+                    st.error("⚠️ **Completa los campos obligatorios (*)**")
         
         st.divider()
         
@@ -2305,7 +2305,7 @@ def view_dashboard_admin():
                 if not pers_df.empty:
                     csv = pers_df.to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        label=f'{get_icon("download", "sm")} Exportar',
+                        label=f'{get_icon_symbol("download")} Exportar',
                         data=csv,
                         file_name=f"personal_{datetime.now().strftime('%Y%m%d')}.csv",
                         mime="text/csv",
@@ -2399,11 +2399,11 @@ def view_dashboard_admin():
                     }
                     with st.spinner("Agregando hito..."):
                         if dm.add_milestone(milestone_data):
-                            st.success(f'{get_icon("check", "sm")} **Hito "{mil_name}" agregado correctamente**')
+                            st.success(f'✅ **Hito "{mil_name}" agregado correctamente**')
                             time.sleep(0.5)
                             st.rerun()
                 else:
-                    st.error(f'{get_icon("alert", "sm")} **Completa el nombre del hito**')
+                    st.error("⚠️ **Completa el nombre del hito**")
         
         st.divider()
         st.write("**Hitos del Proyecto**")
@@ -2448,11 +2448,11 @@ def view_dashboard_admin():
                             "rol_autor": st.session_state.user_info['role']
                         }
                         if dm.add_improvement(improvement_data):
-                            st.success(f'{get_icon("check", "sm")} **Sugerencia de mejora "{imp_title}" enviada correctamente**')
+                            st.success(f'✅ **Sugerencia de mejora "{imp_title}" enviada correctamente**')
                             time.sleep(0.5)
                             st.rerun()
                 else:
-                    st.error(f'{get_icon("alert", "sm")} **Completa los campos obligatorios (*)**')
+                    st.error("⚠️ **Completa los campos obligatorios (*)**")
         
         st.divider()
         st.write("**Mejoras y Sugerencias**")
@@ -2479,13 +2479,13 @@ def view_dashboard_admin():
                     with col1:
                         if st.button(f"{get_icon_symbol('check')} Aprobar", key=f"approve_{imp['id']}", use_container_width=True):
                             if dm.update_improvement_status(imp['id'], "Aprobada"):
-                                st.success(f'{get_icon("check", "sm")} **Mejora aprobada**')
+                                st.success("✅ **Mejora aprobada**")
                                 time.sleep(0.5)
                                 st.rerun()
                     with col2:
                         if st.button(f"{get_icon_symbol('check')} Implementar", key=f"implement_{imp['id']}", use_container_width=True):
                             if dm.update_improvement_status(imp['id'], "Implementada"):
-                                st.success(f'{get_icon("check", "sm")} **Mejora marcada como implementada**')
+                                st.success("✅ **Mejora marcada como implementada**")
                                 time.sleep(0.5)
                                 st.rerun()
         else:
@@ -2518,7 +2518,7 @@ def view_docs():
             if st.button(f'{get_icon_symbol("upload")} Guardar Archivo', use_container_width=True, type="primary", key="btn_guardar_archivo_docs"):
                 with st.spinner("Subiendo archivo..."):
                     if dm.upload_file(uploaded_file, {"version": file_version}):
-                        st.success(f'{get_icon("check", "sm")} **Archivo "{uploaded_file.name}" guardado correctamente**')
+                        st.success(f'✅ **Archivo "{uploaded_file.name}" guardado correctamente**')
                         time.sleep(0.5)
                         st.rerun()
              
@@ -2570,7 +2570,7 @@ def view_docs():
             df = pd.DataFrame(docs)
             csv = df.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label=f'{get_icon("download", "sm")} Exportar',
+                label=f'{get_icon_symbol("download")} Exportar',
                 data=csv,
                 file_name=f"documentos_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
@@ -2632,7 +2632,7 @@ def view_qa():
                             "Ubicacion": location
                         }
                         dm.save_inspection(new_inspection, photo)
-                        st.success(f'{get_icon("check", "sm")} **Inspección guardada correctamente**')
+                        st.success("✅ **Inspección guardada correctamente**")
                         time.sleep(0.5)
                         st.rerun()
                 except Exception as e:
@@ -2649,7 +2649,7 @@ def view_qa():
             df = pd.DataFrame(inspections)
             csv = df.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label=f'{get_icon("download", "sm")} Exportar',
+                label=f'{get_icon_symbol("download")} Exportar',
                 data=csv,
                 file_name=f"inspecciones_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
@@ -2800,7 +2800,7 @@ def view_worker():
     st.divider()
     
     # --- NOTIFICACIONES PERSONALES ---
-    st.markdown(f'<h3>{get_icon("alert", "sm")} Notificaciones</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3>⚠️ Notificaciones</h3>', unsafe_allow_html=True)
     
     st.info("📢 **Nueva asignación**: Revisión de enfierradura Torre B - Piso 3")
     st.warning("⏰ **Recordatorio**: Reunión de seguridad a las 15:00")
@@ -2809,7 +2809,7 @@ def view_worker():
     st.divider()
     
     # --- REPORTE DE INCIDENTES ---
-    st.markdown(f'<h3>{get_icon("alert", "sm")} Reportar Incidente o Observación</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3>⚠️ Reportar Incidente o Observación</h3>', unsafe_allow_html=True)
     
     with st.expander(f"{get_icon('camera', 'sm')} Reportar con Foto", expanded=False):
         incident_photo = st.camera_input("Tomar foto del incidente", help="Toma una foto del incidente para documentarlo")
@@ -3054,7 +3054,7 @@ def view_client():
     )
     
     if st.button(f'{get_icon_symbol("add")} Nueva Solicitud', use_container_width=True, key="btn_nueva_solicitud_cliente"):
-        st.info(f'{get_icon("chat", "sm")} Usa el chat para enviar nuevas solicitudes o contacta directamente al equipo')
+        st.info("💬 Usa el chat para enviar nuevas solicitudes o contacta directamente al equipo")
     
     st.divider()
     
@@ -3139,7 +3139,7 @@ def view_client():
         st.write("**Presupuesto Total:** $9,500,000")
         st.write("**Email Contacto:** obra@constructora.cl")
     
-    st.info(f'{get_icon("chat", "sm")} Para consultas urgentes, utiliza el chat o contacta directamente al equipo de obra')
+    st.info("💬 Para consultas urgentes, utiliza el chat o contacta directamente al equipo de obra")
 
 def view_projects():
     """Vista para gestionar proyectos"""
@@ -3153,7 +3153,7 @@ def view_projects():
             st.markdown(f"""
             <div style='background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;'>
                 <div style='font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;'>
-                    {get_icon("building", "sm")} Proyecto Actual
+                    🏗️ Proyecto Actual
                 </div>
                 <div style='font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;'>
                     {current_project.get("name", "Sin nombre")}
@@ -3164,14 +3164,14 @@ def view_projects():
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.info(f'{get_icon("alert", "sm")} **No hay proyecto seleccionado.** Crea tu primer proyecto a continuación.')
+        st.warning("⚠️ **No hay proyecto seleccionado.** Crea tu primer proyecto a continuación.")
     
     st.divider()
     
     # Tabs para crear y gestionar proyectos
     tab_create, tab_list = st.tabs([
-        f"{get_icon('add', 'sm')} Crear Proyecto",
-        f"{get_icon('project', 'sm')} Mis Proyectos"
+        f"{get_icon_symbol('add')} Crear Proyecto",
+        f"{get_icon_symbol('project')} Mis Proyectos"
     ])
     
     with tab_create:
@@ -3200,11 +3200,11 @@ def view_projects():
                         budget_total=proj_budget
                     )
                     if project_id:
-                        st.success(f'{get_icon("check", "sm")} Proyecto "{proj_name}" creado correctamente')
+                        st.success(f'✅ Proyecto "{proj_name}" creado correctamente')
                         dm.set_current_project(project_id)
                         st.rerun()
                 else:
-                    st.error(f'{get_icon("alert", "sm")} El nombre del proyecto es obligatorio')
+                    st.error("⚠️ El nombre del proyecto es obligatorio")
     
     with tab_list:
         st.markdown("### Lista de Proyectos")
