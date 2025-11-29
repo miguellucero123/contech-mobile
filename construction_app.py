@@ -1712,6 +1712,30 @@ class DataManager:
         elif data_type == "milestones":
             return db.get("milestones", [])
         return {}
+    
+    def save_chat_message(self, user_name: str, user_message: str, assistant_response: str):
+        """Guarda un mensaje de chat en la base de datos (opcional, para historial)"""
+        try:
+            db = self.get_db()
+            if "chat_messages" not in db:
+                db["chat_messages"] = []
+            
+            chat_entry = {
+                "id": len(db["chat_messages"]) + 1,
+                "user_name": user_name,
+                "user_message": user_message,
+                "assistant_response": assistant_response,
+                "timestamp": datetime.now().isoformat(),
+                "date": format_date(datetime.now())
+            }
+            
+            db["chat_messages"].append(chat_entry)
+            self.save_db(db)
+            logger.info(f"Mensaje de chat guardado de {user_name}")
+            return True
+        except Exception as e:
+            logger.warning(f"Error guardando mensaje de chat: {e}")
+            return False
 
 dm = DataManager()
 
@@ -1746,15 +1770,31 @@ if 'messages' not in st.session_state:
 if 'last_activity' not in st.session_state:
     st.session_state.last_activity = datetime.now()
 
+def load_logo_base64(logo_path: str) -> str:
+    """Carga el logo y lo convierte a base64 de forma segura"""
+    try:
+        logo_file = Path(logo_path)
+        if logo_file.exists() and logo_file.is_file():
+            logo_bytes = logo_file.read_bytes()
+            if len(logo_bytes) > 0:
+                return base64.b64encode(logo_bytes).decode('utf-8')
+        return ""
+    except Exception as e:
+        logger.error(f"Error cargando logo {logo_path}: {e}")
+        return ""
+
 def login():
     # Mostrar logo de la empresa con mejor presentación
-    try:
-        logo_path = "logogyh.jpeg"
-        if Path(logo_path).exists():
-            logo_base64 = base64.b64encode(Path(logo_path).read_bytes()).decode()
-            st.markdown(f"""
+    logo_path = "logogyh.jpeg"
+    logo_base64 = load_logo_base64(logo_path)
+    
+    # Contenedor del logo
+    logo_html = ""
+    if logo_base64:
+        try:
+            logo_html = f"""
             <div style='text-align: center; padding: 2rem 0; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border-radius: 16px; margin-bottom: 2rem;'>
-                <img src="data:image/jpeg;base64,{logo_base64}" alt="G&H Constructores" style="max-height: 100px; width: auto; margin-bottom: 1rem;" />
+                <img src="data:image/jpeg;base64,{logo_base64}" alt="G&H Constructores" style="max-height: 100px; width: auto; margin-bottom: 1rem; object-fit: contain;" onerror="this.style.display='none';" />
                 <div style='font-size: 2rem; font-weight: 700; color: #1e40af; letter-spacing: 0.1em; margin-top: 0.5rem;'>
                     G&H CONSTRUCTORES
                 </div>
@@ -1762,21 +1802,13 @@ def login():
                     Sistema de Gestión de Obra
                 </div>
             </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div style='text-align: center; padding: 2rem 0; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border-radius: 16px; margin-bottom: 2rem;'>
-                <div style='font-size: 2.5rem; font-weight: 700; color: #1e40af; letter-spacing: 0.1em;'>
-                    G&H CONSTRUCTORES
-                </div>
-                <div style='font-size: 1.1rem; color: #64748b; margin-top: 0.5rem;'>
-                    Sistema de Gestión de Obra
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    except Exception as e:
-        logger.warning(f"No se pudo cargar el logo: {e}")
-        st.markdown("""
+            """
+        except Exception as e:
+            logger.warning(f"Error generando HTML del logo: {e}")
+            logo_html = ""
+    
+    if not logo_html:
+        logo_html = """
         <div style='text-align: center; padding: 2rem 0; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border-radius: 16px; margin-bottom: 2rem;'>
             <div style='font-size: 2.5rem; font-weight: 700; color: #1e40af; letter-spacing: 0.1em;'>
                 G&H CONSTRUCTORES
@@ -1785,7 +1817,9 @@ def login():
                 Sistema de Gestión de Obra
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """
+    
+    st.markdown(logo_html, unsafe_allow_html=True)
     
     # Usar columnas para centrar en escritorio, en móvil ocupará ancho completo
     col1, col2, col3 = st.columns([1, 6, 1])
@@ -2490,21 +2524,41 @@ def view_docs():
              
     with tab2:
         # Cámara nativa del celular
-        img_file = st.camera_input("Tomar foto a documento")
+        img_file = st.camera_input("Tomar foto a documento", help="Toma una foto del documento para escanearlo")
         if img_file:
-            # Validar imagen
-            is_valid, message = validate_file(img_file, MAX_IMAGE_SIZE_MB, ALLOWED_IMAGE_TYPES + ['.jpg', '.jpeg', '.png'])
-            if is_valid:
-                st.success("Foto capturada. Procesando...")
-                # Aquí se podría implementar OCR
-                if st.button("Guardar como Documento", use_container_width=True, type="primary"):
-                    # Convertir imagen a formato de archivo para subir
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = f"scanned_doc_{timestamp}.jpg"
-                    img_file.name = filename
-                    dm.upload_file(img_file, {"version": "v1.0", "source": "camera"})
-            else:
-                st.error(message)
+            try:
+                # Validar imagen
+                is_valid, message = validate_file(img_file, MAX_IMAGE_SIZE_MB, ALLOWED_IMAGE_TYPES + ['.jpg', '.jpeg', '.png'])
+                if is_valid:
+                    st.success("✅ Foto capturada. Procesando...")
+                    # Mostrar preview de la imagen
+                    try:
+                        st.image(img_file, caption="Vista previa del documento", use_container_width=True)
+                    except Exception as e:
+                        logger.warning(f"Error mostrando preview de imagen: {e}")
+                    
+                    # Aquí se podría implementar OCR
+                    if st.button("Guardar como Documento", use_container_width=True, type="primary", key="btn_guardar_doc_camara"):
+                        with st.spinner("Guardando documento..."):
+                            try:
+                                # Convertir imagen a formato de archivo para subir
+                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                filename = f"scanned_doc_{timestamp}.jpg"
+                                img_file.name = filename
+                                if dm.upload_file(img_file, {"version": "v1.0", "source": "camera"}):
+                                    st.success(f'✅ Documento "{filename}" guardado correctamente')
+                                    time.sleep(0.5)
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Error al guardar el documento. Intenta nuevamente.")
+                            except Exception as e:
+                                logger.error(f"Error guardando documento desde cámara: {e}")
+                                st.error(f"❌ Error al guardar: {str(e)}")
+                else:
+                    st.error(f"❌ {message}")
+            except Exception as e:
+                logger.error(f"Error procesando imagen de cámara: {e}")
+                st.error(f"❌ Error al procesar la imagen: {str(e)}")
             
     # Sección de archivos con descarga
     col_files, col_download_files = st.columns([3, 1])
@@ -2554,25 +2608,36 @@ def view_qa():
         st.markdown(f'<p><strong>{get_icon("camera", "sm")} Evidencia Fotográfica</strong></p>', unsafe_allow_html=True)
         photo = st.camera_input("Tomar foto", help="La foto se comprimirá automáticamente", label_visibility="collapsed")
         
+        # Mostrar preview si hay foto
+        if photo:
+            try:
+                st.image(photo, caption="Vista previa de la inspección", use_container_width=True, width=300)
+            except Exception as e:
+                logger.warning(f"Error mostrando preview de foto de inspección: {e}")
+        
         submitted = st.form_submit_button(f'{get_icon_symbol("check")} Guardar Reporte', type="primary", use_container_width=True)
         
         if submitted:
             if not location.strip():
-                st.warning("Por favor, ingresa una ubicación")
+                st.warning("⚠️ Por favor, ingresa una ubicación")
             else:
-                with st.spinner("Guardando inspección..."):
-                    new_inspection = {
-                        "Fecha": format_date(datetime.now()),
-                        "Actividad": f"{insp_type} - {location}",
-                        "Auditor": st.session_state.user_info['name'],
-                        "Resultado": result,
-                        "Tipo": insp_type,
-                        "Ubicacion": location
-                    }
-                    dm.save_inspection(new_inspection, photo)
-                    st.success(f'{get_icon("check", "sm")} **Inspección guardada correctamente**')
-                    time.sleep(0.5)
-                    st.rerun()
+                try:
+                    with st.spinner("Guardando inspección..."):
+                        new_inspection = {
+                            "Fecha": format_date(datetime.now()),
+                            "Actividad": f"{insp_type} - {location}",
+                            "Auditor": st.session_state.user_info['name'],
+                            "Resultado": result,
+                            "Tipo": insp_type,
+                            "Ubicacion": location
+                        }
+                        dm.save_inspection(new_inspection, photo)
+                        st.success(f'{get_icon("check", "sm")} **Inspección guardada correctamente**')
+                        time.sleep(0.5)
+                        st.rerun()
+                except Exception as e:
+                    logger.error(f"Error guardando inspección: {e}")
+                    st.error(f"❌ Error al guardar la inspección: {str(e)}")
 
     # Historial con descarga
     col_hist, col_download_hist = st.columns([3, 1])
@@ -2747,32 +2812,43 @@ def view_worker():
     st.markdown(f'<h3>{get_icon("alert", "sm")} Reportar Incidente o Observación</h3>', unsafe_allow_html=True)
     
     with st.expander(f"{get_icon('camera', 'sm')} Reportar con Foto", expanded=False):
-        incident_photo = st.camera_input("Tomar foto del incidente")
-        incident_desc = st.text_area("Descripción del incidente", placeholder="Describe qué ocurrió, dónde y cuándo...")
+        incident_photo = st.camera_input("Tomar foto del incidente", help="Toma una foto del incidente para documentarlo")
+        incident_desc = st.text_area("Descripción del incidente", placeholder="Describe qué ocurrió, dónde y cuándo...", help="Proporciona detalles del incidente")
+        
+        # Mostrar preview si hay foto
+        if incident_photo:
+            try:
+                st.image(incident_photo, caption="Vista previa del incidente", use_container_width=True, width=300)
+            except Exception as e:
+                logger.warning(f"Error mostrando preview de foto de incidente: {e}")
         
         if st.button(f'{get_icon_symbol("check")} ENVIAR REPORTE', type="primary", use_container_width=True, key="btn_enviar_reporte_incidente", help="Envía el reporte de incidente al equipo de seguridad"):
             if incident_photo or incident_desc.strip():
                 if confirm_action("¿Estás seguro de enviar este reporte de incidente? Se notificará inmediatamente al equipo de seguridad."):
-                    with st.spinner("Enviando reporte..."):
-                        show_error_message("🚨 Reporte enviado a Prevención de Riesgos")
-                        show_success_message("Tu reporte ha sido registrado. El equipo de seguridad se contactará contigo.", 3)
-                        logger.warning(f"Incidente reportado por {st.session_state.user_info['name']}")
-                        if incident_photo:
-                            try:
-                                photo_bytes = incident_photo.getvalue()
-                                compressed = compress_image(photo_bytes)
-                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                                incident_path = PHOTOS_DIR / f"incident_{timestamp}.jpg"
-                                incident_path.write_bytes(compressed)
-                                logger.info(f"Foto de incidente guardada: {incident_path}")
-                                show_success_message("Foto del incidente guardada correctamente", 2)
-                            except Exception as e:
-                                logger.error(f"Error guardando foto de incidente: {e}")
-                                show_error_message(f"Error al guardar la foto: {str(e)}")
-                        time.sleep(1)
-                        st.rerun()
+                    try:
+                        with st.spinner("Enviando reporte..."):
+                            if incident_photo:
+                                try:
+                                    photo_bytes = incident_photo.getvalue()
+                                    compressed = compress_image(photo_bytes)
+                                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                    incident_path = PHOTOS_DIR / f"incident_{timestamp}.jpg"
+                                    incident_path.write_bytes(compressed)
+                                    logger.info(f"Foto de incidente guardada: {incident_path}")
+                                except Exception as e:
+                                    logger.error(f"Error guardando foto de incidente: {e}")
+                                    st.warning(f"⚠️ El reporte se envió pero hubo un error con la foto: {str(e)}")
+                            
+                            st.success("🚨 Reporte enviado a Prevención de Riesgos")
+                            st.info("✅ Tu reporte ha sido registrado. El equipo de seguridad se contactará contigo.")
+                            logger.warning(f"Incidente reportado por {st.session_state.user_info['name']}")
+                            time.sleep(2)
+                            st.rerun()
+                    except Exception as e:
+                        logger.error(f"Error enviando reporte de incidente: {e}")
+                        st.error(f"❌ Error al enviar el reporte: {str(e)}")
             else:
-                show_warning_message("Toma una foto o escribe una descripción del incidente")
+                st.warning("⚠️ Toma una foto o escribe una descripción del incidente")
     
     # --- INFORMACIÓN DEL TRABAJADOR ---
     st.divider()
@@ -2912,19 +2988,45 @@ def view_client():
     
     gallery_col1, gallery_col2, gallery_col3 = st.columns(3)
     
+    # Función helper para mostrar imágenes con fallback
+    def safe_image_display(image_path_or_url, caption, col):
+        """Muestra una imagen con manejo de errores"""
+        try:
+            if image_path_or_url.startswith("http"):
+                # URL externa
+                st.image(image_path_or_url, use_container_width=True, caption=caption)
+            else:
+                # Ruta local
+                if Path(image_path_or_url).exists():
+                    st.image(image_path_or_url, use_container_width=True, caption=caption)
+                else:
+                    st.info(f"📷 {caption}\n\n*Imagen no disponible*")
+        except Exception as e:
+            logger.warning(f"Error mostrando imagen {image_path_or_url}: {e}")
+            st.info(f"📷 {caption}\n\n*Error al cargar imagen*")
+    
     with gallery_col1:
-        st.image("https://via.placeholder.com/400x300?text=Torre+A+-+Piso+8", use_container_width=True)
-        st.caption("Torre A - Piso 8 (Hormigonado)")
+        safe_image_display(
+            "https://via.placeholder.com/400x300?text=Torre+A+-+Piso+8",
+            "Torre A - Piso 8 (Hormigonado)",
+            gallery_col1
+        )
     
     with gallery_col2:
-        st.image("https://via.placeholder.com/400x300?text=Instalaciones+Sanitarias", use_container_width=True)
-        st.caption("Instalaciones Sanitarias - Piso 5")
+        safe_image_display(
+            "https://via.placeholder.com/400x300?text=Instalaciones+Sanitarias",
+            "Instalaciones Sanitarias - Piso 5",
+            gallery_col2
+        )
     
     with gallery_col3:
-        st.image("https://via.placeholder.com/400x300?text=Fachada+Principal", use_container_width=True)
-        st.caption("Fachada Principal - Avance 30%")
+        safe_image_display(
+            "https://via.placeholder.com/400x300?text=Fachada+Principal",
+            "Fachada Principal - Avance 30%",
+            gallery_col3
+        )
     
-    if st.button("Ver más fotos", use_container_width=True):
+    if st.button("Ver más fotos", use_container_width=True, key="btn_ver_mas_fotos_cliente"):
         st.info("📸 Galería completa disponible en la sección de Documentos")
     
     st.divider()
@@ -3136,27 +3238,157 @@ def view_projects():
         else:
             st.info("No hay proyectos creados. Crea tu primer proyecto en la pestaña 'Crear Proyecto'")
 
+def get_chat_response(user_message: str, user_role: str, user_name: str) -> str:
+    """Genera una respuesta inteligente basada en el mensaje del usuario"""
+    message_lower = user_message.lower()
+    
+    # Respuestas contextuales basadas en palabras clave
+    if any(word in message_lower for word in ["hola", "buenos días", "buenas tardes", "saludo"]):
+        return f"Hola {user_name}! 👋 ¿En qué puedo ayudarte hoy?"
+    
+    elif any(word in message_lower for word in ["proyecto", "avance", "progreso"]):
+        current_project_id = dm.get_current_project_id()
+        if current_project_id:
+            current_project = dm.get_project(current_project_id)
+            if current_project:
+                project_name = current_project.get('name', 'el proyecto')
+                return f"📊 Sobre {project_name}: Puedes revisar el avance en el Dashboard. ¿Necesitas información específica sobre alguna actividad?"
+        return "📋 No hay proyecto seleccionado. Ve a 'Proyectos' para crear o seleccionar uno."
+    
+    elif any(word in message_lower for word in ["presupuesto", "gasto", "costo", "dinero"]):
+        return "💰 Para consultar el presupuesto, ve a la sección de Presupuesto en el Dashboard. ¿Quieres registrar un nuevo gasto?"
+    
+    elif any(word in message_lower for word in ["personal", "trabajador", "equipo", "obrero"]):
+        return "👥 La información del personal está disponible en el Dashboard. ¿Necesitas registrar nuevo personal?"
+    
+    elif any(word in message_lower for word in ["documento", "plano", "archivo", "subir"]):
+        return "📄 Puedes subir documentos en la sección 'Documentos'. Los formatos aceptados son PDF, DWG, DWGX y DXF."
+    
+    elif any(word in message_lower for word in ["inspección", "calidad", "qa", "revisar"]):
+        return "✅ Las inspecciones de calidad se realizan en la sección 'Calidad'. ¿Quieres realizar una nueva inspección?"
+    
+    elif any(word in message_lower for word in ["incidente", "problema", "error", "accidente"]):
+        return "⚠️ Para reportar un incidente, ve a 'Mi Jornada' (si eres trabajador) y usa la sección 'Reportar Incidente'. Los incidentes se notifican inmediatamente al equipo de seguridad."
+    
+    elif any(word in message_lower for word in ["ayuda", "help", "soporte", "asistencia"]):
+        return f"""🆘 **Ayuda disponible:**
+        
+- **Dashboard**: Ver resumen ejecutivo del proyecto
+- **Proyectos**: Crear y gestionar múltiples proyectos
+- **Documentos**: Subir y revisar planos y documentos
+- **Calidad**: Realizar inspecciones de calidad
+- **Chat**: Comunicarte con el equipo (aquí mismo)
+
+¿Necesitas ayuda con algo específico?"""
+    
+    elif any(word in message_lower for word in ["gracias", "thank you", "agradecido"]):
+        return "De nada! 😊 Estoy aquí para ayudarte. ¿Hay algo más en lo que pueda asistirte?"
+    
+    elif any(word in message_lower for word in ["hito", "milestone", "evento", "fecha importante"]):
+        return "📅 Los hitos del proyecto se gestionan en el Dashboard, pestaña 'Hitos'. ¿Quieres agregar un nuevo hito?"
+    
+    elif any(word in message_lower for word in ["mejora", "sugerencia", "optimización"]):
+        return "💡 Puedes enviar sugerencias de mejora desde el Dashboard, pestaña 'Mejoras'. Las mejoras se revisan y pueden ser aprobadas para implementación."
+    
+    elif any(word in message_lower for word in ["asistencia", "entrada", "salida", "jornada"]):
+        if user_role == "WORKER":
+            return "⏰ Puedes marcar tu entrada y salida en la sección 'Mi Jornada'. También puedes ver tu resumen semanal de horas."
+        else:
+            return "👥 La información de asistencia está disponible en el Dashboard para administradores."
+    
+    else:
+        # Respuesta genérica pero útil
+        responses = [
+            f"Entendido, {user_name}. ¿Puedes ser más específico? Puedo ayudarte con proyectos, presupuesto, personal, documentos, inspecciones y más.",
+            f"Recibido. ¿Te refieres a algo relacionado con el proyecto, presupuesto, personal o documentación?",
+            f"Comprendo. Para una mejor asistencia, menciona si necesitas ayuda con: proyectos, presupuesto, personal, documentos, inspecciones o asistencia.",
+            f"Notado. ¿En qué aspecto del proyecto necesitas ayuda? Puedo orientarte sobre el Dashboard, Proyectos, Documentos, Calidad o asistencia."
+        ]
+        import random
+        return random.choice(responses)
+
 def view_chat():
     render_header_with_icon("Chat", "chat")
     
-    # Contenedor de chat con altura fija para móvil
+    # Inicializar mensajes si no existen
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
+    
+    # Información del usuario
+    user_name = st.session_state.user_info.get('name', 'Usuario')
+    user_role = st.session_state.user_info.get('role', 'USER')
+    
+    # Mensaje de bienvenida si es la primera vez
+    if not st.session_state.messages:
+        welcome_message = {
+            "role": "assistant",
+            "content": f"¡Hola {user_name}! 👋 Soy tu asistente virtual de G&H Constructores. Puedo ayudarte con:\n\n- 📊 Información del proyecto\n- 💰 Consultas de presupuesto\n- 👥 Gestión de personal\n- 📄 Documentos y planos\n- ✅ Inspecciones de calidad\n- ⚠️ Reportes de incidentes\n\n¿En qué puedo ayudarte hoy?"
+        }
+        st.session_state.messages = [welcome_message]
+    
+    # Mostrar historial de mensajes
     chat_container = st.container()
     with chat_container:
-        if not st.session_state.messages:
-            st.info("💬 Inicia una conversación...")
-        else:
-            for msg in st.session_state.messages:
-                with st.chat_message(msg["role"]):
-                    st.write(msg["content"])
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
 
-    if prompt := st.chat_input("Escribir..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        # Simular respuesta (aquí se podría integrar con un bot o API)
-        st.session_state.messages.append({
-            "role": "assistant", 
-            "content": "Mensaje recibido. El chat está en desarrollo."
-        })
+    # Input de chat
+    if prompt := st.chat_input("Escribe tu mensaje aquí..."):
+        # Agregar mensaje del usuario
+        user_msg = {"role": "user", "content": prompt}
+        st.session_state.messages.append(user_msg)
+        
+        # Mostrar mensaje del usuario inmediatamente
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Generar y mostrar respuesta
+        with st.chat_message("assistant"):
+            with st.spinner("Pensando..."):
+                response = get_chat_response(prompt, user_role, user_name)
+                st.markdown(response)
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": response
+                })
+        
+        # Guardar mensajes en la base de datos (opcional)
+        try:
+            dm.save_chat_message(user_name, prompt, response)
+        except Exception as e:
+            logger.warning(f"Error guardando mensaje de chat: {e}")
+        
         st.rerun()
+    
+    # Botones de acción rápida
+    st.divider()
+    st.markdown("**💡 Acciones rápidas:**")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📊 Ver Proyecto", use_container_width=True, key="chat_btn_project"):
+            st.session_state.messages.append({
+                "role": "user",
+                "content": "Información del proyecto"
+            })
+            st.rerun()
+    
+    with col2:
+        if st.button("💰 Presupuesto", use_container_width=True, key="chat_btn_budget"):
+            st.session_state.messages.append({
+                "role": "user",
+                "content": "Consulta de presupuesto"
+            })
+            st.rerun()
+    
+    with col3:
+        if st.button("🆘 Ayuda", use_container_width=True, key="chat_btn_help"):
+            st.session_state.messages.append({
+                "role": "user",
+                "content": "Necesito ayuda"
+            })
+            st.rerun()
 
 # --- ROUTER PRINCIPAL ---
 
@@ -3170,17 +3402,18 @@ else:
     else:
         with st.sidebar:
             # Logo de la empresa en el sidebar
-            try:
-                logo_path = "logogyh.jpeg"
-                if Path(logo_path).exists():
-                    logo_base64 = base64.b64encode(Path(logo_path).read_bytes()).decode()
+            logo_path = "logogyh.jpeg"
+            logo_base64 = load_logo_base64(logo_path)
+            
+            if logo_base64:
+                try:
                     st.markdown(f"""
                     <div style='text-align: center; padding: 1rem 0;'>
-                        <img src="data:image/jpeg;base64,{logo_base64}" alt="G&H Constructores" style="max-height: 60px; width: auto;" />
+                        <img src="data:image/jpeg;base64,{logo_base64}" alt="G&H Constructores" style="max-height: 60px; width: auto; object-fit: contain;" onerror="this.style.display='none';" />
                     </div>
                     """, unsafe_allow_html=True)
-            except Exception as e:
-                logger.warning(f"No se pudo cargar el logo en sidebar: {e}")
+                except Exception as e:
+                    logger.warning(f"Error mostrando logo en sidebar: {e}")
             
             st.write(f"👤 **{st.session_state.user_info['name']}**")
             st.caption(f"Rol: {st.session_state.user_info['role']}")
