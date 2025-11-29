@@ -1886,93 +1886,145 @@ def view_dashboard_admin():
         st.warning("⚠️ No hay proyecto seleccionado. Ve a \"Proyectos\" para crear o seleccionar uno.")
         return
     
-    # --- KPIs PRINCIPALES ---
+    # --- KPIs PRINCIPALES (DATOS REALES DEL PROYECTO) ---
     st.markdown(f'<h3>{get_icon("chart", "md")} Indicadores Clave (KPIs)</h3>', unsafe_allow_html=True)
+    
+    # Cargar datos del proyecto actual
+    activities = dm.get_activities()
+    activities_df = pd.DataFrame(activities) if activities else pd.DataFrame()
+    
+    budget = dm.get_budget()
+    personnel = dm.get_personnel()
+    inspections = dm.get_inspections()
+    inspections_df = pd.DataFrame(inspections) if inspections else pd.DataFrame()
+    docs = dm.get_docs()
+    docs_df = pd.DataFrame(docs) if docs else pd.DataFrame()
+    improvements = dm.get_improvements()
+    improvements_df = pd.DataFrame(improvements) if improvements else pd.DataFrame()
+    
+    # 1) Avance físico: promedio del campo "avance" de las actividades
+    if not activities_df.empty and "avance" in activities_df.columns:
+        physical_progress = float(activities_df["avance"].mean())
+    else:
+        physical_progress = 0.0
+    
+    prev_progress = st.session_state.get("kpi_prev_physical_progress")
+    delta_progress = physical_progress - prev_progress if prev_progress is not None else None
+    st.session_state["kpi_prev_physical_progress"] = physical_progress
+    
+    # 2) Presupuesto ejecutado: porcentaje real respecto al total
+    budget_total = budget.get("total", 0)
+    budget_executed = budget.get("executed", 0)
+    budget_percent = (budget_executed / budget_total * 100) if budget_total > 0 else 0.0
+    
+    prev_exec = st.session_state.get("kpi_prev_budget_executed")
+    delta_budget = (budget_executed - prev_exec) if prev_exec is not None else None
+    st.session_state["kpi_prev_budget_executed"] = budget_executed
+    
+    # 3) Asistencia estimada: personal "Activo" sobre total registrado
+    if personnel:
+        pers_df = pd.DataFrame(personnel)
+        total_personal = len(pers_df)
+        activos = (pers_df.get("estado", "") == "Activo").sum() if "estado" in pers_df.columns else total_personal
+        attendance_percent = (activos / total_personal * 100) if total_personal > 0 else 0.0
+    else:
+        attendance_percent = 0.0
+    
+    # 4) Inspecciones de calidad: porcentaje de inspecciones "Aprobado"
+    if not inspections_df.empty and "Resultado" in inspections_df.columns:
+        total_insp = len(inspections_df)
+        aprobadas = (inspections_df["Resultado"] == "Aprobado").sum()
+        qa_approval_rate = (aprobadas / total_insp * 100) if total_insp > 0 else 0.0
+    else:
+        total_insp = 0
+        qa_approval_rate = 0.0
+    
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
     
     with kpi1:
         st.metric(
             label="Avance Físico",
-            value="45.2%",
-            delta="+2.5%",
-            delta_color="normal",
-            help="Porcentaje de avance físico del proyecto"
+            value=f"{physical_progress:.1f}%",
+            delta=f"{delta_progress:+.1f}%" if delta_progress is not None else None,
+            help="Promedio de avance (%) de todas las actividades registradas del proyecto."
         )
-        st.progress(0.452)
+        st.progress(min(physical_progress / 100, 1.0))
     
     with kpi2:
-        budget = dm.get_budget()
-        budget_percent = (budget['executed'] / budget['total'] * 100) if budget['total'] > 0 else 0
         st.metric(
             label="Presupuesto Ejecutado",
             value=f"{budget_percent:.1f}%",
-            delta=f"${budget['executed']:,.0f}",
+            delta=f"${delta_budget:,.0f}" if delta_budget is not None else None,
             delta_color="normal",
-            help="Porcentaje del presupuesto utilizado"
+            help="Monto ejecutado respecto al presupuesto total del proyecto."
         )
-        st.progress(budget_percent / 100)
+        st.progress(min(budget_percent / 100, 1.0))
     
     with kpi3:
         st.metric(
-            label="Asistencia Hoy",
-            value="92%",
-            delta="-1%",
-            delta_color="inverse",
-            help="Porcentaje de asistencia del personal hoy"
+            label="Asistencia Estimada",
+            value=f"{attendance_percent:.1f}%",
+            help="Porcentaje de personal con estado 'Activo' respecto al total registrado."
         )
-        st.progress(0.92)
+        st.progress(min(attendance_percent / 100, 1.0))
     
     with kpi4:
         st.metric(
-            label="Días Sin Accidentes",
-            value="128",
-            delta="+7 días",
-            delta_color="normal",
-            help="Días consecutivos sin accidentes"
+            label="Calidad (Inspecciones Aprobadas)",
+            value=f"{qa_approval_rate:.1f}%",
+            help="Porcentaje de inspecciones con resultado 'Aprobado' sobre el total registrado."
         )
+        st.progress(min(qa_approval_rate / 100, 1.0))
     
-    # --- SEGUNDA FILA DE KPIs ---
+    # --- SEGUNDA FILA DE KPIs (VOLUMEN DE GESTIÓN) ---
     kpi5, kpi6, kpi7, kpi8 = st.columns(4)
+    
+    total_activities = len(activities_df) if not activities_df.empty else 0
+    total_personnel = len(personnel) if personnel else 0
+    total_docs = len(docs_df) if not docs_df.empty else 0
+    pending_docs = (
+        (docs_df["Estado"] != "Aprobado").sum()
+        if not docs_df.empty and "Estado" in docs_df.columns
+        else 0
+    )
+    total_improvements = len(improvements_df) if not improvements_df.empty else 0
+    pending_improvements = (
+        improvements_df["status"].isin(["Pendiente", "En Evaluación"]).sum()
+        if not improvements_df.empty and "status" in improvements_df.columns
+        else 0
+    )
     
     with kpi5:
         st.metric(
-            label="RFI Pendientes",
-            value="12",
-            delta="-3",
-            delta_color="normal",
-            help="Request for Information pendientes"
+            label="Actividades Registradas",
+            value=str(total_activities),
+            help="Total de actividades planificadas y en seguimiento para el proyecto."
         )
-        st.caption("3 críticos")
     
     with kpi6:
         st.metric(
-            label="Inspecciones del Mes",
-            value="47",
-            delta="+5",
-            delta_color="normal",
-            help="Total de inspecciones realizadas este mes"
+            label="Personal Registrado",
+            value=str(total_personnel),
+            help="Cantidad de trabajadores y profesionales asociados al proyecto."
         )
-        st.caption("85% aprobadas")
     
     with kpi7:
         st.metric(
-            label="Personal en Obra",
-            value="68",
-            delta="+3",
-            delta_color="normal",
-            help="Personal presente hoy"
+            label="Documentos Pendientes",
+            value=str(pending_docs),
+            delta=str(total_docs),
+            delta_color="inverse",
+            help="Cantidad de planos/documentos cuyo estado no es 'Aprobado'. El delta muestra el total de documentos."
         )
-        st.caption("Capacidad: 75")
     
     with kpi8:
         st.metric(
-            label="Documentos Pendientes",
-            value="8",
-            delta="-2",
-            delta_color="normal",
-            help="Documentos esperando aprobación"
+            label="Mejoras / Incidencias Pendientes",
+            value=str(pending_improvements),
+            delta=str(total_improvements),
+            delta_color="inverse",
+            help="Mejoras o incidencias en estado 'Pendiente' o 'En Evaluación'. El delta muestra el total de mejoras registradas."
         )
-        st.caption("2 urgentes")
     
     st.divider()
     
