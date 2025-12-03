@@ -1174,6 +1174,13 @@ def get_icon_symbol(icon_name: str) -> str:
     }
     return icon_symbols.get(icon_name, "")
 
+# Etiquetas legibles para roles
+ROLE_LABELS = {
+    "ADMIN": "Jefe de Obra",
+    "WORKER": "Trabajador",
+    "CLIENT": "Cliente",
+}
+
 def get_icon(icon_name: str, size: str = "md") -> str:
     """Retorna el HTML de un icono para usar en markdown (NO para botones)"""
     size_map = {"sm": "16px", "md": "20px", "lg": "24px"}
@@ -1273,7 +1280,11 @@ def get_default_db():
     """Retorna estructura por defecto de la base de datos"""
     return {
         "projects": [],
-        "current_project_id": None
+        "current_project_id": None,
+        "risks": [],
+        "audit_log": [],
+        "dashboard_snapshots": [],
+        "alerts": []
     }
 
 def get_default_project_data():
@@ -1389,7 +1400,14 @@ class DataManager:
                 st.session_state.local_inspections.insert(0, data)
                 st.toast("Guardado Localmente", icon="💾")
                 logger.info("Inspección guardada localmente")
-                
+            
+            # Registrar en bitácora
+            self.add_audit_entry(
+                action="save_inspection",
+                entity_type="inspection",
+                entity_id=data.get("Actividad"),
+                details={"resultado": data.get("Resultado"), "tipo": data.get("Tipo")}
+            )
         except Exception as e:
             logger.error(f"Error en save_inspection: {e}")
             st.error(f"Error al guardar la inspección: {str(e)}")
@@ -1464,6 +1482,13 @@ class DataManager:
                 st.session_state.local_docs.insert(0, new_doc)
             
             st.toast("Archivo registrado", icon="📂")
+            # Registrar en bitácora
+            self.add_audit_entry(
+                action="upload_file",
+                entity_type="document",
+                entity_id=new_doc.get("Archivo"),
+                details={"version": new_doc.get("Versión"), "estado": new_doc.get("Estado")}
+            )
             return True
             
         except Exception as e:
@@ -1600,6 +1625,13 @@ class DataManager:
         db["current_project_id"] = project_id
         st.session_state.current_project_id = project_id
         self.save_db(db)
+        # Registrar en bitácora
+        self.add_audit_entry(
+            action="set_current_project",
+            entity_type="project",
+            entity_id=project_id,
+            details={}
+        )
     
     def get_project(self, project_id):
         """Obtiene un proyecto por ID"""
@@ -1617,6 +1649,13 @@ class DataManager:
         activity_data["created_at"] = datetime.now().isoformat()
         project_data["activities"].append(activity_data)
         self.save_current_project_data(project_data)
+        # Registrar en bitácora
+        self.add_audit_entry(
+            action="add_activity",
+            entity_type="activity",
+            entity_id=activity_data["id"],
+            details={"nombre": activity_data.get("nombre"), "estado": activity_data.get("estado")}
+        )
         return True
     
     def get_activities(self):
@@ -1631,6 +1670,13 @@ class DataManager:
         personnel_data["created_at"] = datetime.now().isoformat()
         project_data["personnel"].append(personnel_data)
         self.save_current_project_data(project_data)
+        # Registrar en bitácora
+        self.add_audit_entry(
+            action="add_personnel",
+            entity_type="personnel",
+            entity_id=personnel_data["id"],
+            details={"nombre": personnel_data.get("nombre"), "rol": personnel_data.get("rol")}
+        )
         return True
     
     def get_personnel(self):
@@ -1646,6 +1692,13 @@ class DataManager:
         improvement_data["status"] = "Pendiente"
         project_data["improvements"].append(improvement_data)
         self.save_current_project_data(project_data)
+        # Registrar en bitácora
+        self.add_audit_entry(
+            action="add_improvement",
+            entity_type="improvement",
+            entity_id=improvement_data["id"],
+            details={"titulo": improvement_data.get("titulo"), "status": improvement_data.get("status")}
+        )
         return True
     
     def get_improvements(self):
@@ -1661,6 +1714,13 @@ class DataManager:
                 improvement["status"] = new_status
                 improvement["updated_at"] = datetime.now().isoformat()
                 self.save_current_project_data(project_data)
+                # Registrar en bitácora
+                self.add_audit_entry(
+                    action="update_improvement_status",
+                    entity_type="improvement",
+                    entity_id=improvement_id,
+                    details={"nuevo_estado": new_status, "titulo": improvement.get("titulo")}
+                )
                 return True
         return False
     
@@ -1673,6 +1733,13 @@ class DataManager:
             budget["executed"] += amount
             project_data["budget"] = budget
             self.save_current_project_data(project_data)
+            # Registrar en bitácora
+            self.add_audit_entry(
+                action="update_budget",
+                entity_type="budget",
+                entity_id=category,
+                details={"monto": amount}
+            )
             return True
         return False
     
@@ -1688,6 +1755,13 @@ class DataManager:
         milestone_data["created_at"] = datetime.now().isoformat()
         project_data["milestones"].append(milestone_data)
         self.save_current_project_data(project_data)
+        # Registrar en bitácora
+        self.add_audit_entry(
+            action="add_milestone",
+            entity_type="milestone",
+            entity_id=milestone_data["id"],
+            details={"nombre": milestone_data.get("nombre"), "estado": milestone_data.get("estado")}
+        )
         return True
     
     def get_milestones(self):
@@ -1709,6 +1783,69 @@ class DataManager:
         db = self.get_db()
         return db.get("alerts", [])
     
+    # --- RIESGOS, BITÁCORA Y SNAPSHOTS ---
+    def add_risk(self, risk_data: dict) -> bool:
+        """Agrega un riesgo a la matriz de riesgos global"""
+        try:
+            db = self.get_db()
+            risks = db.get("risks", [])
+            risk_data["id"] = len(risks) + 1
+            risk_data["created_at"] = datetime.now().isoformat()
+            risks.append(risk_data)
+            db["risks"] = risks
+            self.save_db(db)
+            return True
+        except Exception as e:
+            logger.error(f"Error agregando riesgo: {e}")
+            return False
+
+    def get_risks(self) -> list:
+        """Obtiene todos los riesgos registrados"""
+        db = self.get_db()
+        return db.get("risks", [])
+
+    def add_audit_entry(self, action: str, entity_type: str, entity_id: str | int | None, details: dict | None = None) -> None:
+        """Agrega una entrada a la bitácora de auditoría"""
+        try:
+            db = self.get_db()
+            audit_log = db.get("audit_log", [])
+            entry = {
+                "id": len(audit_log) + 1,
+                "timestamp": datetime.now().isoformat(),
+                "user": st.session_state.user_info["name"] if st.session_state.get("user_info") else "Sistema",
+                "action": action,
+                "entity_type": entity_type,
+                "entity_id": entity_id,
+                "details": details or {},
+            }
+            audit_log.append(entry)
+            db["audit_log"] = audit_log
+            self.save_db(db)
+        except Exception as e:
+            logger.warning(f"Error agregando entrada de auditoría: {e}")
+
+    def get_audit_log(self) -> list:
+        """Obtiene la bitácora completa"""
+        db = self.get_db()
+        return db.get("audit_log", [])
+
+    def add_dashboard_snapshot(self, snapshot: dict) -> None:
+        """Guarda un snapshot del dashboard ejecutivo"""
+        try:
+            db = self.get_db()
+            snapshots = db.get("dashboard_snapshots", [])
+            snapshot["id"] = len(snapshots) + 1
+            snapshots.append(snapshot)
+            db["dashboard_snapshots"] = snapshots
+            self.save_db(db)
+        except Exception as e:
+            logger.warning(f"Error guardando snapshot de dashboard: {e}")
+
+    def get_dashboard_snapshots(self) -> list:
+        """Devuelve los snapshots de dashboard guardados"""
+        db = self.get_db()
+        return db.get("dashboard_snapshots", [])
+
     def export_data(self, data_type: str):
         """Exporta datos en formato JSON o CSV"""
         db = self.get_db()
@@ -2026,6 +2163,106 @@ def view_dashboard_admin():
             help="Mejoras o incidencias en estado 'Pendiente' o 'En Evaluación'. El delta muestra el total de mejoras registradas."
         )
     
+    # --- RESUMEN PARA REPORTE DESCARGABLE ---
+    dashboard_report = {
+        "proyecto": current_project.get("name", "Sin nombre") if current_project_id else "N/A",
+        "fecha_generacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "kpis": {
+            "avance_fisico_pct": round(physical_progress, 1),
+            "presupuesto_ejecutado_pct": round(budget_percent, 1),
+            "presupuesto_total": budget_total,
+            "presupuesto_ejecutado": budget_executed,
+            "asistencia_estimadaa_pct": round(attendance_percent, 1),
+            "tasa_aprobacion_calidad_pct": round(qa_approval_rate, 1),
+            "actividades_registradas": total_activities,
+            "personal_registrado": total_personnel,
+            "documentos_totales": total_docs,
+            "documentos_pendientes": pending_docs,
+            "mejoras_totales": total_improvements,
+            "mejoras_pendientes": pending_improvements,
+        }
+    }
+    # Guardar snapshot en DB para históricos
+    try:
+        dm.add_dashboard_snapshot(dashboard_report)
+    except Exception as e:
+        logger.warning(f"No se pudo guardar snapshot de dashboard: {e}")
+    
+    # Botón para descargar reporte del dashboard
+    col_title, col_download_report = st.columns([3, 1])
+    with col_download_report:
+        if st.button(f"{get_icon_symbol('download')} Generar Reporte", use_container_width=True, key="btn_download_dashboard_report"):
+            # Exportar como JSON y CSV comprimidos en memoria
+            report_json = json.dumps(dashboard_report, indent=2, ensure_ascii=False).encode("utf-8")
+            st.download_button(
+                label=f"{get_icon_symbol('download')} Descargar JSON",
+                data=report_json,
+                file_name=f"reporte_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                use_container_width=True,
+                key="download_dashboard_json"
+            )
+            # Versión CSV simplificada solo con KPIs
+            kpi_df = pd.DataFrame.from_dict(dashboard_report["kpis"], orient="index", columns=["valor"])
+            kpi_csv = kpi_df.to_csv().encode("utf-8")
+            st.download_button(
+                label=f"{get_icon_symbol('download')} Descargar CSV KPIs",
+                data=kpi_csv,
+                file_name=f"reporte_dashboard_kpis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_dashboard_csv"
+            )
+    
+    st.divider()
+    
+    # --- HISTÓRICO DE KPIs (SNAPSHOTS) ---
+    st.markdown(f'<h3>{get_icon("chart", "md")} Histórico de KPIs</h3>', unsafe_allow_html=True)
+    snapshots = dm.get_dashboard_snapshots()
+    if snapshots:
+        # Convertir snapshots a DataFrame "aplanado"
+        flat_rows = []
+        for snap in snapshots[-50:]:  # limitar a últimos 50 para evitar sobrecarga
+            row = {
+                "id": snap.get("id"),
+                "fecha": snap.get("fecha_generacion"),
+                "proyecto": snap.get("proyecto", "N/A"),
+            }
+            for kpi_name, value in snap.get("kpis", {}).items():
+                row[kpi_name] = value
+            flat_rows.append(row)
+        
+        hist_df = pd.DataFrame(flat_rows)
+        hist_df = hist_df.sort_values("fecha") if "fecha" in hist_df.columns else hist_df
+        
+        col_hist_chart, col_hist_export = st.columns([3, 1])
+        with col_hist_chart:
+            # Si existen columnas de interés, graficar avance y presupuesto
+            kpi_cols = []
+            if "avance_fisico_pct" in hist_df.columns:
+                kpi_cols.append("avance_fisico_pct")
+            if "presupuesto_ejecutado_pct" in hist_df.columns:
+                kpi_cols.append("presupuesto_ejecutado_pct")
+            if kpi_cols and "fecha" in hist_df.columns:
+                plot_df = hist_df.set_index("fecha")[kpi_cols]
+                st.line_chart(plot_df, use_container_width=True)
+                st.caption("Evolución histórica de Avance Físico y Presupuesto Ejecutado")
+        
+        with col_hist_export:
+            csv_hist = hist_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label=f'{get_icon_symbol("download")} Exportar Histórico KPIs',
+                data=csv_hist,
+                file_name=f"dashboard_kpis_historico_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_dashboard_history"
+            )
+        
+        st.dataframe(hist_df, use_container_width=True, hide_index=True, height=220)
+    else:
+        st.info("Aún no hay snapshots históricos del dashboard. Se irán generando automáticamente cada vez que visites este panel.")
+    
     st.divider()
     
     # --- GRÁFICOS Y VISUALIZACIONES ---
@@ -2175,17 +2412,227 @@ def view_dashboard_admin():
     # --- ALERTAS Y NOTIFICACIONES ---
     st.markdown(f'<h3>{get_icon("alert", "md")} Alertas y Notificaciones</h3>', unsafe_allow_html=True)
     
+    # Generar alertas "inteligentes" en base a los datos actuales del proyecto
+    critical_alerts = []
+    warning_alerts = []
+    info_alerts = []
+    positive_alerts = []
+    
+    # 1) Riesgo de cronograma (avance físico vs presupuesto)
+    #   - Crítico: avance físico más de 15 pts por debajo del financiero
+    #   - Advertencia: más de 7 pts por debajo
+    if physical_progress + 15 < budget_percent and physical_progress > 0:
+        critical_alerts.append(
+            "🔴 **CRÍTICO**: El avance físico está significativamente por debajo del avance financiero. "
+            "Revisa el cronograma y prioriza actividades críticas."
+        )
+    elif physical_progress + 7 < budget_percent:
+        warning_alerts.append(
+            "🟡 **ATENCIÓN**: El avance físico está algo rezagado respecto al presupuesto ejecutado."
+        )
+    
+    # 2) Presupuesto cercano al límite
+    #   - Crítico: ≥ 95% del presupuesto
+    #   - Advertencia: ≥ 85% del presupuesto
+    if budget_percent >= 95:
+        critical_alerts.append(
+            "🔴 **CRÍTICO**: El proyecto ha ejecutado ≥95% del presupuesto. Revisa sobrecostos y posibles ajustes."
+        )
+    elif budget_percent >= 85:
+        warning_alerts.append(
+            "🟡 **IMPORTANTE**: El proyecto ha ejecutado más del 85% del presupuesto."
+        )
+    
+    # 3) Calidad (inspecciones)
+    #   - Crítico: tasa de aprobación < 75%
+    #   - Advertencia: 75–90%
+    if total_insp > 0:
+        if qa_approval_rate < 75:
+            critical_alerts.append(
+                f"🔴 **CRÍTICO**: Solo el {qa_approval_rate:.1f}% de las inspecciones fueron aprobadas. "
+                "Revisa las no conformidades más frecuentes."
+            )
+        elif qa_approval_rate < 90:
+            warning_alerts.append(
+                f"🟡 **ATENCIÓN**: Tasa de aprobación de inspecciones {qa_approval_rate:.1f}%. Revisa observaciones frecuentes."
+            )
+        else:
+            positive_alerts.append(
+                f"🟢 **CALIDAD**: {qa_approval_rate:.1f}% de inspecciones aprobadas."
+            )
+    
+    # 4) Documentos y planos pendientes
+    if pending_docs > 0:
+        warning_alerts.append(
+            f"🟡 **DOCUMENTOS**: Hay {pending_docs} documentos pendientes de aprobación."
+        )
+    
+    # 5) Mejoras / incidencias
+    if pending_improvements > 0:
+        warning_alerts.append(
+            f"🟡 **MEJORAS**: {pending_improvements} mejoras o incidencias requieren revisión."
+        )
+    elif total_improvements > 0:
+        positive_alerts.append(
+            "🟢 **MEJORAS**: Todas las mejoras registradas han sido atendidas."
+        )
+    
+    # 6) Asistencia
+    #   - Crítico: < 75%
+    #   - Advertencia: 75–90%
+    if attendance_percent < 75:
+        critical_alerts.append(
+            f"🔴 **ASISTENCIA**: Asistencia estimada baja ({attendance_percent:.1f}%). Puede afectar productividad."
+        )
+    elif attendance_percent < 90:
+        warning_alerts.append(
+            f"🟡 **ASISTENCIA**: Asistencia estimada {attendance_percent:.1f}%. Monitorea ausencias y rotación."
+        )
+    else:
+        positive_alerts.append(
+            f"🟢 **ASISTENCIA**: Buena asistencia estimada ({attendance_percent:.1f}%)."
+        )
+    
+    # 7) Volumen de trabajo y registro
+    if total_activities == 0:
+        info_alerts.append("🔵 **INFO**: Aún no hay actividades registradas. Usa la sección 'Gestión de Información'.")
+    if total_personnel == 0:
+        info_alerts.append("🔵 **INFO**: No hay personal registrado para el proyecto actual.")
+    if total_docs == 0:
+        info_alerts.append("🔵 **INFO**: No hay planos/documentos registrados aún.")
+    
     alert_col1, alert_col2 = st.columns(2)
     
     with alert_col1:
-        st.error("🔴 **CRÍTICO**: Hormigón Torre A retrasado - Impacto en cronograma")
-        st.warning("🟡 **IMPORTANTE**: Visita Inspectores Municipales - Mañana 10:00 AM")
-        st.info("🔵 **INFORMATIVO**: Nuevo plano estructural v4.3 disponible")
+        for msg in critical_alerts:
+            st.error(msg)
+        for msg in warning_alerts[:2]:
+            st.warning(msg)
     
     with alert_col2:
-        st.warning("🟡 **ATENCIÓN**: RFI #45 requiere respuesta urgente")
-        st.info("🔵 **RECORDATORIO**: Reunión de coordinación - Viernes 15:00")
-        st.success("🟢 **COMPLETADO**: Inspección de seguridad aprobada")
+        for msg in warning_alerts[2:]:
+            st.warning(msg)
+        for msg in positive_alerts:
+            st.success(msg)
+        for msg in info_alerts:
+            st.info(msg)
+    
+    st.divider()
+    
+    # --- HISTORIAL DE CAMBIOS CLAVE (BITÁCORA) ---
+    st.markdown(f'<h3>{get_icon("documents", "md")} Historial de Cambios Clave</h3>', unsafe_allow_html=True)
+    audit_entries = dm.get_audit_log()
+    if audit_entries:
+        # Mostrar solo últimas 100 entradas para rendimiento
+        audit_df = pd.DataFrame(audit_entries[-100:])
+        # Ordenar por fecha
+        if "timestamp" in audit_df.columns:
+            audit_df = audit_df.sort_values("timestamp", ascending=False)
+        
+        col_audit_table, col_audit_export = st.columns([3, 1])
+        with col_audit_table:
+            display_cols = ["timestamp", "user", "action", "entity_type", "entity_id"]
+            available_cols = [c for c in display_cols if c in audit_df.columns]
+            st.dataframe(
+                audit_df[available_cols],
+                use_container_width=True,
+                hide_index=True,
+                height=220
+            )
+        with col_audit_export:
+            csv_audit = audit_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label=f'{get_icon_symbol("download")} Exportar Bitácora',
+                data=csv_audit,
+                file_name=f"audit_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_audit_log"
+            )
+    else:
+        st.info("Aún no hay movimientos registrados en la bitácora.")
+    
+    st.divider()
+    
+    # --- MATRIZ DE RIESGOS DEL PROYECTO ---
+    st.markdown(f'<h3>{get_icon("alert", "md")} Matriz de Riesgos del Proyecto</h3>', unsafe_allow_html=True)
+    
+    col_risk_form, col_risk_table = st.columns([1, 2])
+    
+    with col_risk_form:
+        st.markdown("**Registrar nuevo riesgo**")
+        with st.form("form_risk", clear_on_submit=True):
+            risk_title = st.text_input("Riesgo *", placeholder="Ej: Atraso en suministro de hormigón")
+            risk_area = st.selectbox("Área", ["Plazo", "Costo", "Calidad", "Seguridad", "Ambiental", "Contratos", "Otro"])
+            risk_probability = st.selectbox("Probabilidad", ["Baja", "Media", "Alta"])
+            risk_impact = st.selectbox("Impacto", ["Bajo", "Medio", "Alto", "Crítico"])
+            risk_owner = st.text_input("Responsable", placeholder="Ej: Jefe de Obra")
+            risk_mitigation = st.text_area("Plan de Mitigación", placeholder="Acciones para reducir probabilidad o impacto...")
+            
+            submitted_risk = st.form_submit_button("Guardar Riesgo", type="primary", use_container_width=True)
+            
+            if submitted_risk:
+                if risk_title and risk_owner:
+                    prob_score = {"Baja": 1, "Media": 2, "Alta": 3}[risk_probability]
+                    impact_score = {"Bajo": 1, "Medio": 2, "Alto": 3, "Crítico": 4}[risk_impact]
+                    risk_score = prob_score * impact_score
+                    risk_level = (
+                        "Bajo" if risk_score <= 3 else
+                        "Medio" if risk_score <= 6 else
+                        "Alto" if risk_score <= 9 else
+                        "Crítico"
+                    )
+                    risk_data = {
+                        "titulo": risk_title,
+                        "area": risk_area,
+                        "probabilidad": risk_probability,
+                        "impacto": risk_impact,
+                        "nivel": risk_level,
+                        "score": risk_score,
+                        "responsable": risk_owner,
+                        "mitigacion": risk_mitigation,
+                    }
+                    if dm.add_risk(risk_data):
+                        show_success_message("Riesgo registrado correctamente", 2)
+                        st.rerun()
+                    else:
+                        show_error_message("No se pudo guardar el riesgo. Intenta nuevamente.")
+                else:
+                    show_warning_message("Completa al menos Riesgo y Responsable")
+    
+    with col_risk_table:
+        risks = dm.get_risks()
+        if risks:
+            risks_df = pd.DataFrame(risks)
+            if not risks_df.empty:
+                # Ordenar por nivel de riesgo (score)
+                if "score" in risks_df.columns:
+                    risks_df = risks_df.sort_values("score", ascending=False)
+                display_cols = ["titulo", "area", "probabilidad", "impacto", "nivel", "responsable"]
+                available_cols = [c for c in display_cols if c in risks_df.columns]
+                st.dataframe(
+                    risks_df[available_cols],
+                    use_container_width=True,
+                    hide_index=True,
+                    height=220
+                )
+                
+                # Mapa simple de niveles
+                if "nivel" in risks_df.columns:
+                    risk_level_counts = risks_df["nivel"].value_counts()
+                    st.bar_chart(risk_level_counts, use_container_width=True)
+                
+                csv_risks = risks_df.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label=f'{get_icon_symbol("download")} Exportar Matriz de Riesgos',
+                    data=csv_risks,
+                    file_name=f"matriz_riesgos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    key="download_risks"
+                )
+        else:
+            st.info("Aún no hay riesgos registrados. Utiliza el formulario para agregar el primero.")
     
     st.divider()
     
@@ -2732,8 +3179,37 @@ def view_qa():
         st.info("No hay inspecciones registradas aún")
 
 def view_worker():
-    render_header_with_icon("Mi Jornada", "user")
-    st.write(f"Bienvenido, **{st.session_state.user_info['name']}**")
+    render_header_with_icon("Perfil del Trabajador - Mi Jornada", "user")
+    worker_name = st.session_state.user_info['name']
+    st.write(f"Bienvenido, **{worker_name}**")
+    
+    # --- PERFIL DEL TRABAJADOR ---
+    st.markdown("### Perfil del Trabajador")
+    personnel = dm.get_personnel()
+    my_record = None
+    if personnel:
+        for p in personnel:
+            if p.get("nombre") == worker_name:
+                my_record = p
+                break
+    info_col1, info_col2 = st.columns(2)
+    with info_col1:
+        st.write(f"**Rol:** {ROLE_LABELS.get('WORKER', 'Trabajador')}")
+        if my_record:
+            st.write(f"**Equipo:** {my_record.get('equipo', 'N/D')}")
+            st.write(f"**Estado:** {my_record.get('estado', 'N/D')}")
+            st.write(f"**Fecha de Ingreso:** {my_record.get('fecha_ingreso', 'N/D')}")
+        else:
+            st.info("Tu información de equipo aún no está registrada en el sistema.")
+    with info_col2:
+        if my_record:
+            st.write(f"**DNI/RUT:** {my_record.get('dni', 'N/D')}")
+            st.write(f"**Teléfono:** {my_record.get('telefono', 'N/D')}")
+            st.write(f"**Email:** {my_record.get('email', 'N/D')}")
+        else:
+            st.write("**Contacto:** Consulta a tu jefe de obra para completar tus datos de perfil.")
+    
+    st.divider()
     
     # --- ESTADO ACTUAL DE LA JORNADA ---
     current_date = datetime.now().strftime("%d/%m/%Y")
@@ -2810,12 +3286,13 @@ def view_worker():
     st.markdown(f'<h3>{get_icon("chart", "sm")} Resumen Semanal</h3>', unsafe_allow_html=True)
     
     if 'weekly_hours' not in st.session_state:
+        # Inicializar con valores de referencia; en producción esto se debería cargar desde asistencia real
         st.session_state.weekly_hours = {
             'Lunes': 8.0,
-            'Martes': 8.5,
-            'Miércoles': 7.5,
+            'Martes': 8.0,
+            'Miércoles': 8.0,
             'Jueves': 8.0,
-            'Viernes': 0.0,
+            'Viernes': 8.0,
             'Sábado': 0.0,
             'Domingo': 0.0
         }
@@ -2835,6 +3312,9 @@ def view_worker():
         st.metric("Total Semanal", f"{total_hours:.1f}h")
         avg_hours = total_hours / len([h for h in st.session_state.weekly_hours.values() if h > 0]) if any(st.session_state.weekly_hours.values()) else 0
         st.metric("Promedio Diario", f"{avg_hours:.1f}h")
+        target_weekly = 42.0
+        balance = total_hours - target_weekly
+        st.metric("Balance vs Objetivo (42h)", f"{balance:+.1f}h")
         st.caption(f"Fecha: {current_date}")
     
     st.divider()
@@ -2874,7 +3354,7 @@ def view_worker():
     # --- REPORTE DE INCIDENTES ---
     st.markdown(f'<h3>⚠️ Reportar Incidente o Observación</h3>', unsafe_allow_html=True)
     
-    with st.expander(f"{get_icon('camera', 'sm')} Reportar con Foto", expanded=False):
+    with st.expander(f"{get_icon_symbol('camera')} Reportar con Foto", expanded=False):
         incident_photo = st.camera_input("Tomar foto del incidente", help="Toma una foto del incidente para documentarlo")
         incident_desc = st.text_area("Descripción del incidente", placeholder="Describe qué ocurrió, dónde y cuándo...", help="Proporciona detalles del incidente")
         
@@ -2930,14 +3410,15 @@ def view_worker():
         st.write("**Última Asistencia:** " + (st.session_state.get('entry_date', 'N/A')))
 
 def view_client():
+    """Portal del Cliente con datos reales del proyecto actual"""
     render_header_with_icon("Portal del Cliente", "building")
     
     # Mostrar información del proyecto actual
     current_project_id = dm.get_current_project_id()
-    if current_project_id:
-        current_project = dm.get_project(current_project_id)
-        if current_project:
-            st.markdown(f"""
+    current_project = dm.get_project(current_project_id) if current_project_id else None
+    if current_project:
+        st.markdown(
+            f"""
             <div style='background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;'>
                 <div style='font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;'>
                     {get_icon("building", "sm")} {current_project.get("name", "Sin nombre")}
@@ -2946,34 +3427,90 @@ def view_client():
                     📍 {current_project.get("location", "N/A")} | 📅 Inicio: {current_project.get("start_date", "N/A")}
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.warning("⚠️ No hay proyecto seleccionado actualmente. Contacta a tu jefe de obra.")
+        return
     
     st.write(f"Bienvenido, **{st.session_state.user_info['name']}**")
     
-    # --- KPIs PRINCIPALES PARA CLIENTE ---
+    # --- KPIs PRINCIPALES PARA CLIENTE (DATOS REALES) ---
     st.markdown(f'<h3>{get_icon("chart", "sm")} Resumen del Proyecto</h3>', unsafe_allow_html=True)
+    
+    activities = dm.get_activities()
+    activities_df = pd.DataFrame(activities) if activities else pd.DataFrame()
+    budget = dm.get_budget()
+    
+    # Avance físico promedio
+    if not activities_df.empty and "avance" in activities_df.columns:
+        physical_progress = float(activities_df["avance"].mean())
+    else:
+        physical_progress = 0.0
+    
+    # Avance financiero
+    budget_total = budget.get("total", 0)
+    budget_executed = budget.get("executed", 0)
+    budget_percent = (budget_executed / budget_total * 100) if budget_total > 0 else 0.0
+    
+    # Fechas y días
+    start_date_str = current_project.get("start_date")
+    try:
+        start_date = datetime.strptime(start_date_str, "%d/%m/%Y") if start_date_str else datetime.now()
+    except Exception:
+        start_date = datetime.now()
+    today = datetime.now()
+    days_elapsed = max(0, (today - start_date).days)
+    planned_duration_days = 365
+    days_remaining = max(0, planned_duration_days - days_elapsed)
     
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
     
     with kpi_col1:
-        st.metric("Avance Físico", "65.3%", "+2.1%")
-        st.progress(0.653)
-        st.caption("Meta: 70% al 31/03")
+        st.metric("Avance Físico", f"{physical_progress:.1f}%")
+        st.progress(min(physical_progress / 100, 1.0))
+        st.caption("Promedio de avance de las actividades registradas")
     
     with kpi_col2:
-        budget = dm.get_budget()
-        budget_percent = (budget['executed'] / budget['total'] * 100) if budget['total'] > 0 else 0
-        st.metric("Avance Financiero", f"{budget_percent:.1f}%", f"${budget['executed']:,.0f}")
-        st.progress(budget_percent / 100)
-        st.caption("Presupuesto ejecutado")
+        st.metric("Avance Financiero", f"{budget_percent:.1f}%", f"${budget_executed:,.0f}")
+        st.progress(min(budget_percent / 100, 1.0))
+        st.caption("Porcentaje del presupuesto ejecutado")
     
     with kpi_col3:
-        st.metric("Días Transcurridos", "245", "+7")
-        st.caption("De 365 días totales")
+        st.metric("Días Transcurridos", str(days_elapsed))
+        st.caption(f"De un horizonte estimado de {planned_duration_days} días")
     
     with kpi_col4:
-        st.metric("Días Restantes", "120", "-7")
-        st.caption("Hasta finalización")
+        st.metric("Días Restantes (estimado)", str(days_remaining))
+        st.caption("Cálculo aproximado según duración estándar de 12 meses")
+    
+    # Botón para descargar resumen del cliente
+    client_report = {
+        "proyecto": current_project.get("name", "Sin nombre"),
+        "cliente": st.session_state.user_info["name"],
+        "fecha_generacion": today.strftime("%Y-%m-%d %H:%M:%S"),
+        "kpis": {
+            "avance_fisico_pct": round(physical_progress, 1),
+            "avance_financiero_pct": round(budget_percent, 1),
+            "presupuesto_total": budget_total,
+            "presupuesto_ejecutado": budget_executed,
+            "dias_transcurridos": days_elapsed,
+            "dias_restantes_estimados": days_remaining,
+        },
+    }
+    
+    col_kpi_title, col_kpi_download = st.columns([3, 1])
+    with col_kpi_download:
+        report_json = json.dumps(client_report, indent=2, ensure_ascii=False).encode("utf-8")
+        st.download_button(
+            label=f"{get_icon_symbol('download')} Descargar Resumen",
+            data=report_json,
+            file_name=f"resumen_cliente_{today.strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            use_container_width=True,
+            key="download_client_summary",
+        )
     
     st.divider()
     
@@ -2982,48 +3519,62 @@ def view_client():
     
     with col_chart1:
         st.markdown(f'<h3>{get_icon("chart", "sm")} Curva de Avance</h3>', unsafe_allow_html=True)
-        progress_data = pd.DataFrame({
-            'Mes': ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-            'Planificado': [10, 25, 45, 65, 80, 100],
-            'Real': [8, 22, 42, 65, 0, 0]
-        })
-        st.line_chart(
-            progress_data.set_index('Mes'),
-            use_container_width=True
-        )
-        st.caption("Comparación planificado vs real")
+        if not activities_df.empty and "fecha_inicio" in activities_df.columns:
+            try:
+                act_dates = pd.to_datetime(activities_df["fecha_inicio"], format="%d/%m/%Y", errors="coerce")
+                df_curve = pd.DataFrame({"Fecha": act_dates, "Avance": activities_df.get("avance", 0)}).dropna()
+                df_curve = df_curve.sort_values("Fecha")
+                df_curve = df_curve.groupby("Fecha")["Avance"].mean().cumsum()
+                if df_curve.max() > 0:
+                    df_curve = df_curve / df_curve.max() * 100
+                st.line_chart(df_curve, use_container_width=True)
+                st.caption("Curva acumulada de avance físico (estimada)")
+            except Exception as e:
+                logger.warning(f"Error generando curva de avance cliente: {e}")
+        else:
+            progress_data = pd.DataFrame(
+                {
+                    "Mes": ["Ene", "Feb", "Mar", "Abr", "May", "Jun"],
+                    "Planificado": [10, 25, 45, 65, 80, 100],
+                    "Real": [8, 22, 42, 65, 0, 0],
+                }
+            )
+            st.line_chart(progress_data.set_index("Mes"), use_container_width=True)
+            st.caption("Ejemplo de curva planificado vs real (sin datos suficientes)")
     
     with col_chart2:
         st.subheader("💰 Ejecución Presupuestaria")
-        budget = dm.get_budget()
-        budget_cats = budget['categories']
-        budget_data = pd.DataFrame({
-            'Categoría': list(budget_cats.keys()),
-            'Presupuesto': [budget_cats[cat]['budget'] for cat in budget_cats],
-            'Ejecutado': [budget_cats[cat]['executed'] for cat in budget_cats]
-        })
-        budget_data['%'] = (budget_data['Ejecutado'] / budget_data['Presupuesto'] * 100).round(1)
-        st.bar_chart(
-            budget_data.set_index('Categoría')[['%']],
-            use_container_width=True
-        )
-        st.caption("Porcentaje ejecutado por categoría")
+        budget_cats = budget.get("categories", {})
+        if budget_cats:
+            budget_data = pd.DataFrame(
+                {
+                    "Categoría": list(budget_cats.keys()),
+                    "Presupuesto": [budget_cats[cat]["budget"] for cat in budget_cats],
+                    "Ejecutado": [budget_cats[cat]["executed"] for cat in budget_cats],
+                }
+            )
+            budget_data["%"] = (budget_data["Ejecutado"] / budget_data["Presupuesto"] * 100).round(1)
+            st.bar_chart(budget_data.set_index("Categoría")[["%"]], use_container_width=True)
+            st.caption("Porcentaje ejecutado por categoría")
+        else:
+            st.info("No hay información detallada de presupuesto por categoría.")
     
     st.divider()
     
     # --- ESTADO DE ACTIVIDADES PRINCIPALES ---
     st.markdown(f'<h3>{get_icon("building", "sm")} Estado de Actividades</h3>', unsafe_allow_html=True)
     
-    activities = dm.get_activities()
     if activities:
         activities_df = pd.DataFrame(activities)
         if not activities_df.empty:
-            display_df = pd.DataFrame({
-                'Actividad': activities_df.get('nombre', ''),
-                'Avance': activities_df.get('avance', 0),
-                'Estado': activities_df.get('estado', ''),
-                'Fecha_Fin_Plan': activities_df.get('fecha_fin', '')
-            })
+            display_df = pd.DataFrame(
+                {
+                    "Actividad": activities_df.get("nombre", ""),
+                    "Avance": activities_df.get("avance", 0),
+                    "Estado": activities_df.get("estado", ""),
+                    "Fecha_Fin_Plan": activities_df.get("fecha_fin", ""),
+                }
+            )
             
             st.dataframe(
                 display_df,
@@ -3037,12 +3588,12 @@ def view_client():
                 },
                 use_container_width=True,
                 hide_index=True,
-                height=200
+                height=200,
             )
         else:
-            st.info("No hay actividades registradas aún")
+            st.info("No hay actividades registradas aún.")
     else:
-        st.info("💡 Las actividades se mostrarán aquí cuando el equipo las registre")
+        st.info("💡 Las actividades se mostrarán aquí cuando el equipo las registre.")
     
     st.divider()
     
@@ -3052,14 +3603,12 @@ def view_client():
     gallery_col1, gallery_col2, gallery_col3 = st.columns(3)
     
     # Función helper para mostrar imágenes con fallback
-    def safe_image_display(image_path_or_url, caption, col):
+    def safe_image_display(image_path_or_url, caption):
         """Muestra una imagen con manejo de errores"""
         try:
             if image_path_or_url.startswith("http"):
-                # URL externa
                 st.image(image_path_or_url, use_container_width=True, caption=caption)
             else:
-                # Ruta local
                 if Path(image_path_or_url).exists():
                     st.image(image_path_or_url, use_container_width=True, caption=caption)
                 else:
@@ -3072,21 +3621,18 @@ def view_client():
         safe_image_display(
             "https://via.placeholder.com/400x300?text=Torre+A+-+Piso+8",
             "Torre A - Piso 8 (Hormigonado)",
-            gallery_col1
         )
     
     with gallery_col2:
         safe_image_display(
             "https://via.placeholder.com/400x300?text=Instalaciones+Sanitarias",
             "Instalaciones Sanitarias - Piso 5",
-            gallery_col2
         )
     
     with gallery_col3:
         safe_image_display(
             "https://via.placeholder.com/400x300?text=Fachada+Principal",
             "Fachada Principal - Avance 30%",
-            gallery_col3
         )
     
     if st.button("Ver más fotos", use_container_width=True, key="btn_ver_mas_fotos_cliente"):
@@ -3097,27 +3643,29 @@ def view_client():
     # --- SOLICITUDES Y CAMBIOS ---
     st.markdown(f'<h3>{get_icon("documents", "sm")} Mis Solicitudes y Cambios</h3>', unsafe_allow_html=True)
     
-    requests_df = pd.DataFrame({
-        'Solicitud': [
-            'Cambio de acabados - Piso Hall',
-            'Modificación de parking - Nivel -1',
-            'Actualización de planos - Torre B',
-            'Solicitud de visita técnica'
-        ],
-        'Fecha': ['15/03/2024', '20/03/2024', '22/03/2024', '25/03/2024'],
-        'Estado': ['✅ Aprobado', '⏳ En Evaluación', '✅ Aprobado', '📋 Pendiente'],
-        'Responsable': ['Ing. Carlos M.', 'Arq. María T.', 'Ing. Carlos M.', 'Equipo Técnico']
-    })
+    requests_df = pd.DataFrame(
+        {
+            "Solicitud": [
+                "Cambio de acabados - Piso Hall",
+                "Modificación de parking - Nivel -1",
+                "Actualización de planos - Torre B",
+                "Solicitud de visita técnica",
+            ],
+            "Fecha": ["15/03/2024", "20/03/2024", "22/03/2024", "25/03/2024"],
+            "Estado": ["✅ Aprobado", "⏳ En Evaluación", "✅ Aprobado", "📋 Pendiente"],
+            "Responsable": ["Ing. Carlos M.", "Arq. María T.", "Ing. Carlos M.", "Equipo Técnico"],
+        }
+    )
     
     st.dataframe(
         requests_df,
         use_container_width=True,
         hide_index=True,
-        height=200
+        height=200,
     )
     
-    if st.button(f'{get_icon_symbol("add")} Nueva Solicitud', use_container_width=True, key="btn_nueva_solicitud_cliente"):
-        st.info("💬 Usa el chat para enviar nuevas solicitudes o contacta directamente al equipo")
+    if st.button(f"{get_icon_symbol('add')} Nueva Solicitud", use_container_width=True, key="btn_nueva_solicitud_cliente"):
+        st.info("💬 Usa el chat para enviar nuevas solicitudes o contacta directamente al equipo.")
     
     st.divider()
     
@@ -3135,12 +3683,12 @@ def view_client():
                     milestones_df[available_cols],
                     use_container_width=True,
                     hide_index=True,
-                    height=150
+                    height=150,
                 )
         else:
-            st.info("No hay hitos registrados aún")
+            st.info("No hay hitos registrados aún.")
     else:
-        st.info("💡 Los hitos del proyecto se mostrarán aquí")
+        st.info("💡 Los hitos del proyecto se mostrarán aquí.")
     
     st.divider()
     
@@ -3149,21 +3697,20 @@ def view_client():
     
     improvements = dm.get_improvements()
     if improvements:
-        # Filtrar solo mejoras aprobadas o implementadas para el cliente
-        client_improvements = [imp for imp in improvements if imp.get('status') in ['Aprobada', 'Implementada']]
+        client_improvements = [imp for imp in improvements if imp.get("status") in ["Aprobada", "Implementada"]]
         
         if client_improvements:
-            for imp in client_improvements[:5]:  # Mostrar máximo 5
-                status_icon = "✅" if imp.get('status') == 'Implementada' else "🟢"
+            for imp in client_improvements[:5]:
+                status_icon = "✅" if imp.get("status") == "Implementada" else "🟢"
                 with st.expander(f"{status_icon} {imp.get('titulo', 'Sin título')} - {imp.get('status', 'N/A')}"):
                     st.write(f"**Categoría:** {imp.get('categoria', 'N/A')}")
                     st.write(f"**Descripción:** {imp.get('descripcion', 'Sin descripción')}")
-                    if imp.get('impacto_estimado'):
+                    if imp.get("impacto_estimado"):
                         st.write(f"**Impacto:** {imp['impacto_estimado']}")
         else:
-            st.info("No hay mejoras aprobadas para mostrar")
+            st.info("No hay mejoras aprobadas para mostrar aún.")
     else:
-        st.info("💡 Las mejoras implementadas se mostrarán aquí")
+        st.info("💡 Las mejoras implementadas se mostrarán aquí.")
     
     st.divider()
     
@@ -3172,16 +3719,16 @@ def view_client():
     
     docs = dm.get_docs()
     if docs:
-        recent_docs = pd.DataFrame(docs[:5])
+        recent_docs = pd.DataFrame(docs[:10])
         display_cols = ["Archivo", "Versión", "Fecha", "Estado"]
         available_cols = [col for col in display_cols if col in recent_docs.columns]
         st.dataframe(
             recent_docs[available_cols],
             use_container_width=True,
-            hide_index=True
+            hide_index=True,
         )
     else:
-        st.info("No hay documentos disponibles aún")
+        st.info("No hay documentos disponibles aún.")
     
     st.divider()
     
@@ -3191,18 +3738,18 @@ def view_client():
     info_col1, info_col2 = st.columns(2)
     
     with info_col1:
-        st.write("**Proyecto:** Edificio Residencial Altos del Parque")
-        st.write("**Ubicación:** Av. Principal 1234")
+        st.write(f"**Proyecto:** {current_project.get('name', 'N/D')}")
+        st.write(f"**Ubicación:** {current_project.get('location', 'N/D')}")
         st.write("**Jefe de Obra:** Ing. Carlos Méndez")
         st.write("**Teléfono:** +56 9 1234 5678")
     
     with info_col2:
-        st.write("**Fecha Inicio:** 01/01/2024")
+        st.write(f"**Fecha Inicio:** {current_project.get('start_date', 'N/D')}")
         st.write("**Fecha Fin Planificada:** 30/06/2024")
-        st.write("**Presupuesto Total:** $9,500,000")
+        st.write(f"**Presupuesto Total:** ${current_project.get('budget_total', 0):,.0f}")
         st.write("**Email Contacto:** obra@constructora.cl")
     
-    st.info("💬 Para consultas urgentes, utiliza el chat o contacta directamente al equipo de obra")
+    st.info("💬 Para consultas urgentes, utiliza el chat o contacta directamente al equipo de obra.")
 
 def view_projects():
     """Vista para gestionar proyectos"""
@@ -3561,7 +4108,9 @@ else:
                     logger.warning(f"Error mostrando logo en sidebar: {e}")
             
             st.write(f"👤 **{st.session_state.user_info['name']}**")
-            st.caption(f"Rol: {st.session_state.user_info['role']}")
+            role_code = st.session_state.user_info['role']
+            role_label = ROLE_LABELS.get(role_code, role_code)
+            st.caption(f"Rol: {role_label}")
             
             # Selector de Proyecto (solo para ADMIN)
             role = st.session_state.user_info['role']
